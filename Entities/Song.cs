@@ -1,4 +1,3 @@
-// @ Entities/Song.cs
 using MusicApp.Enums;
 
 namespace MusicApp.Entities;

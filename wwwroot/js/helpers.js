@@ -1,4 +1,3 @@
-// @ wwwroot/js/helpers.js
 window.copyToClipboard = (text) => navigator.clipboard.writeText(text);
 window.scrollToTop = () => window.scrollTo(0, 0);
 

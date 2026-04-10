@@ -1,4 +1,3 @@
-// @ Entities/PasswordResetToken.cs
 namespace MusicApp.Entities;
 
 public class PasswordResetToken

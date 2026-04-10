@@ -1,4 +1,3 @@
-// @ DTOs/SongDto.cs
 using MusicApp.Enums;
 
 namespace MusicApp.DTOs;

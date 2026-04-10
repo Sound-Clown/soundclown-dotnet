@@ -1,4 +1,3 @@
-// @ DTOs/PagedResult.cs
 namespace MusicApp.DTOs;
 
 public record PagedResult<T>(

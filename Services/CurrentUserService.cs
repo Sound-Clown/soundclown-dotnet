@@ -1,4 +1,3 @@
-// @ Services/CurrentUserService.cs
 using System.Security.Claims;
 using Microsoft.AspNetCore.Components.Authorization;
 using MusicApp.Enums;

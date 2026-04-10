@@ -1,4 +1,3 @@
-// @ Entities/Like.cs
 namespace MusicApp.Entities;
 
 public class Like

@@ -1,4 +1,3 @@
-// @ Services/ICurrentUserService.cs
 using MusicApp.Enums;
 
 namespace MusicApp.Services;

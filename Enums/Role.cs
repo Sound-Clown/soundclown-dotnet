@@ -1,4 +1,3 @@
-// @ Enums/Role.cs
 namespace MusicApp.Enums;
 
 public enum Role

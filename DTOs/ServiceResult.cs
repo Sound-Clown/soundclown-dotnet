@@ -1,4 +1,3 @@
-// @ DTOs/ServiceResult.cs
 namespace MusicApp.DTOs;
 
 /// <summary>

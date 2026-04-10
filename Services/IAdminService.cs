@@ -1,4 +1,3 @@
-// @ Services/IAdminService.cs
 using MusicApp.DTOs;
 
 namespace MusicApp.Services;

@@ -1,4 +1,3 @@
-// @ wwwroot/js/player.js
 window.musicPlayer = {
   audio: new Audio(),
   play(url) {

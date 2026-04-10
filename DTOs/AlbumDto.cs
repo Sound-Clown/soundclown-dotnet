@@ -1,4 +1,3 @@
-// @ DTOs/AlbumDto.cs
 namespace MusicApp.DTOs;
 
 public record AlbumDto(

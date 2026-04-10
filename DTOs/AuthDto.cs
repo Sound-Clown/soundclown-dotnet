@@ -1,4 +1,3 @@
-// @ DTOs/AuthDto.cs
 namespace MusicApp.DTOs;
 
 public record RegisterDto(

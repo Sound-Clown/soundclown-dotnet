@@ -1,4 +1,3 @@
-// @ Services/IAuthService.cs
 using MusicApp.DTOs;
 
 namespace MusicApp.Services;

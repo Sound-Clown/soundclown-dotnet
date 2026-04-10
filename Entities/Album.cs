@@ -1,4 +1,3 @@
-// @ Entities/Album.cs
 namespace MusicApp.Entities;
 
 public class Album

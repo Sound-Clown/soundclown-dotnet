@@ -1,4 +1,3 @@
-// @ Services/IPlayerService.cs
 namespace MusicApp.Services;
 
 public record PlayerSong(int Id, string Title, string? CoverImage, string AudioUrl, string ArtistUsername, int PlayCount, int LikeCount, bool IsLiked);

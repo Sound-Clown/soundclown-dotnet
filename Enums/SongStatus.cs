@@ -1,4 +1,3 @@
-// @ Enums/SongStatus.cs
 namespace MusicApp.Enums;
 
 public enum SongStatus
