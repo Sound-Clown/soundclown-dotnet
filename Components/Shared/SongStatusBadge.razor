@@ -1,0 +1,26 @@
+@switch (Status)
+{
+    case SongStatus.Pending:
+        <span class="badge badge-pending">
+            <span style="width:6px;height:6px;border-radius:50%;background:currentColor;display:inline-block;"></span>
+            Chờ duyệt
+        </span>
+        break;
+    case SongStatus.Approved:
+        <span class="badge badge-approved">
+            <span style="width:6px;height:6px;border-radius:50%;background:currentColor;display:inline-block;"></span>
+            Đã duyệt
+        </span>
+        break;
+    case SongStatus.Rejected:
+        <span class="badge badge-rejected" title="@RejectReason">
+            <span style="width:6px;height:6px;border-radius:50%;background:currentColor;display:inline-block;"></span>
+            Từ chối
+        </span>
+        break;
+}
+
+@code {
+    [Parameter] public SongStatus Status { get; set; }
+    [Parameter] public string? RejectReason { get; set; }
+}

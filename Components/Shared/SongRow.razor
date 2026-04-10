@@ -1,0 +1,60 @@
+<div class="flex items-center gap-4 px-4 py-3 rounded-xl hover:bg-white/5 cursor-pointer transition-colors group"
+     @onclick="() => OnClick.InvokeAsync(Index)">
+    <!-- Cover -->
+    <div class="w-12 h-12 rounded-lg overflow-hidden bg-[#252528] flex-shrink-0 relative">
+        @if (!string.IsNullOrEmpty(Song.CoverImage))
+        {
+            <img src="@Song.CoverImage" alt="@Song.Title" class="w-full h-full object-cover" />
+        }
+        else
+        {
+            <div class="w-full h-full flex items-center justify-center">
+                <svg width="18" height="18" fill="none" stroke="var(--muted-foreground-3)" stroke-width="1.5" viewBox="0 0 24 24">
+                    <path d="M9 18V5l12-2v13M9 18c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2zm12 0c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2z"/>
+                </svg>
+            </div>
+        }
+        <!-- Hover overlay -->
+        <div class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+            <svg width="16" height="16" fill="var(--accent)" viewBox="0 0 24 24">
+                <polygon points="5,3 19,12 5,21"/>
+            </svg>
+        </div>
+    </div>
+
+    <!-- Info -->
+    <div class="flex-1 min-w-0">
+        <p class="text-sm font-medium truncate text-[var(--foreground)]">@Song.Title</p>
+        <p class="text-xs truncate text-[var(--muted-foreground)]">@Song.ArtistUsername</p>
+    </div>
+
+    <!-- Meta -->
+    @if (ShowAlbum && Song.AlbumName != null)
+    {
+        <p class="text-xs text-[var(--muted-foreground)] truncate max-w-[120px] hidden sm:block">@Song.AlbumName</p>
+    }
+    <p class="text-xs text-[var(--muted-foreground-2)] hidden md:block">@Song.PlayCount plays</p>
+
+    <!-- Actions -->
+    <button class="opacity-0 group-hover:opacity-100 transition-opacity p-2 hover:bg-white/10 rounded-lg"
+            @onclick:stopPropagation @onclick="ToggleLike">
+        <svg width="16" height="16" fill="@(Song.IsLiked ? "var(--accent)" : "none")"
+             stroke="@(Song.IsLiked ? "var(--accent)" : "currentColor")" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+        </svg>
+    </button>
+</div>
+
+@code {
+    [Parameter] public SongDto Song { get; set; } = null!;
+    [Parameter] public int Index { get; set; }
+    [Parameter] public bool ShowAlbum { get; set; }
+    [Parameter] public EventCallback<int> OnClick { get; set; }
+    [Parameter] public EventCallback OnToggleLike { get; set; }
+
+    private void ToggleLike()
+    {
+        // IsLiked is init-only on record; parent manages state
+        _ = OnToggleLike.InvokeAsync();
+    }
+}

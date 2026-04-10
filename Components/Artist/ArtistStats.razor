@@ -1,0 +1,113 @@
+@page "/artist/stats"
+@attribute [Authorize(Roles = "Artist")]
+@inject ISongService SongService
+@inject ICurrentUserService CurrentUser
+
+<div class="page-content max-w-2xl mx-auto">
+    <h1 class="text-xl font-medium mb-6">Thống kê</h1>
+
+    @if (_loading)
+    {
+        <LoadingSpinner />
+    }
+    else if (_stats != null)
+    {
+        <!-- Summary cards -->
+        <div class="grid grid-cols-2 gap-4 mb-8 max-w-sm">
+            <div class="card text-center py-5">
+                <p class="text-2xl font-bold" style="color: var(--accent)">@FormatCount(_stats.TotalPlays)</p>
+                <p class="text-sm" style="color: var(--muted-foreground-2)">Tổng lượt phát</p>
+            </div>
+            <div class="card text-center py-5">
+                <p class="text-2xl font-bold" style="color: var(--accent)">@FormatCount(_stats.TotalLikes)</p>
+                <p class="text-sm" style="color: var(--muted-foreground-2)">Tổng lượt thích</p>
+            </div>
+        </div>
+
+        <!-- Bar chart (simple) -->
+        @if (_stats.Tracks.Count > 0)
+        {
+            <div class="card mb-6">
+                <h2 class="text-base font-medium mb-4">Top bài hát theo lượt phát</h2>
+                <div class="space-y-3">
+                    @foreach (var track in _stats.Tracks.Take(10))
+                    {
+                        var maxPlays = _stats.Tracks.Max(t => t.PlayCount);
+                        var pct = maxPlays > 0 ? (double)track.PlayCount / maxPlays * 100 : 0;
+                        <div>
+                            <div class="flex justify-between text-sm mb-1">
+                                <span class="truncate">@track.Title</span>
+                                <span style="color: var(--muted-foreground-2)">@FormatCount(track.PlayCount)</span>
+                            </div>
+                            <div class="h-2 rounded-full" style="background: #333340;">
+                                <div class="h-2 rounded-full transition-all duration-500"
+                                     style="background: var(--accent); width: @pct%;"></div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+
+        <!-- Table -->
+        @if (_stats.Tracks.Count > 0)
+        {
+            <div class="card overflow-hidden">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr style="border-bottom: 1px solid var(--border)">
+                            <th class="text-left py-3 px-3 font-medium" style="color: var(--muted-foreground-2)">#</th>
+                            <th class="text-left py-3 font-medium" style="color: var(--muted-foreground-2)">Bài hát</th>
+                            <th class="text-right py-3 px-3 font-medium" style="color: var(--muted-foreground-2)">Phát</th>
+                            <th class="text-right py-3 px-3 font-medium" style="color: var(--muted-foreground-2)">Thích</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var (idx, track) in _stats.Tracks.Select((t, i) => (i, t)))
+                        {
+                            <tr style="border-bottom: 1px solid var(--border)">
+                                <td class="py-3 px-3" style="color: var(--muted-foreground-3)">@(idx + 1)</td>
+                                <td class="py-3">
+                                    <div class="flex items-center gap-3">
+                                        @if (!string.IsNullOrEmpty(track.CoverImage))
+                                        {
+                                            <img src="@track.CoverImage" class="w-8 h-8 rounded object-cover" />
+                                        }
+                                        <span class="truncate">@track.Title</span>
+                                    </div>
+                                </td>
+                                <td class="py-3 px-3 text-right" style="color: var(--muted-foreground)">@FormatCount(track.PlayCount)</td>
+                                <td class="py-3 px-3 text-right" style="color: var(--muted-foreground)">@FormatCount(track.LikeCount)</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    }
+    else
+    {
+        <EmptyState Title="Chưa có dữ liệu" Description="Hãy upload và được duyệt ít nhất một bài hát." />
+    }
+</div>
+
+@code {
+    private StatsDto? _stats;
+    private bool _loading;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _loading = true;
+        var result = await SongService.GetArtistStatsAsync(CurrentUser.UserId!.Value);
+        _loading = false;
+        if (result.IsSuccess) _stats = result.Data;
+        StateHasChanged();
+    }
+
+    private static string FormatCount(int c)
+    {
+        if (c >= 1_000_000) return $"{c / 1_000_000.0:F1}M";
+        if (c >= 1_000) return $"{c / 1000.0:F1}K";
+        return c.ToString();
+    }
+}

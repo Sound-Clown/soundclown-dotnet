@@ -1,0 +1,210 @@
+@page "/admin/songs"
+@attribute [Authorize(Roles = "Admin")]
+@inject IAdminService AdminService
+@inject IToastService Toast
+@inject IJSRuntime JSRuntime
+
+<div class="page-content">
+    <div class="flex items-center justify-between mb-6">
+        <div>
+            <h1 class="text-xl font-medium">Duyệt bài hát</h1>
+            @if (_pending != null)
+            {
+                <p class="text-xs mt-0.5" style="color: var(--muted-foreground-2);">
+                    @_pending.Count đang chờ duyệt
+                </p>
+            }
+        </div>
+        <button class="btn-ghost" @onclick="Load">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <polyline points="1 4 1 10 7 10"/>
+                <path d="M3.51 15a9 9 0 1 0 .49-3.51"/>
+            </svg>
+            Làm mới
+        </button>
+    </div>
+
+    @if (_loading)
+    {
+        <LoadingSpinner />
+    }
+    else if (_pending != null && _pending.Count > 0)
+    {
+        <div class="flex flex-col lg:flex-row gap-6">
+            <!-- Queue -->
+            <div class="flex-1 space-y-2 min-w-0">
+                <h2 class="text-sm font-medium mb-3" style="color: var(--muted-foreground-2);">Chờ duyệt</h2>
+                @foreach (var song in _pending)
+                {
+                    <div class="card flex items-center gap-3 py-3 cursor-pointer hover:border-[var(--accent)] transition-colors"
+                         @onclick="() => SelectSong(song)">
+                        <!-- Cover -->
+                        <div class="w-12 h-12 rounded-lg overflow-hidden bg-[#252528] flex-shrink-0">
+                            @if (!string.IsNullOrEmpty(song.CoverImage))
+                            {
+                                <img src="@song.CoverImage" class="w-full h-full object-cover" />
+                            }
+                            else
+                            {
+                                <div class="w-full h-full flex items-center justify-center">
+                                    <svg width="18" height="18" fill="none" stroke="var(--muted-foreground-3)" stroke-width="1.5" viewBox="0 0 24 24">
+                                        <path d="M9 18V5l12-2v13M9 18c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2zm12 0c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2z"/>
+                                    </svg>
+                                </div>
+                            }
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm font-medium truncate">@song.Title</p>
+                            <p class="text-xs" style="color: var(--muted-foreground-2);">@song.ArtistUsername</p>
+                        </div>
+                        <div class="flex-shrink-0">
+                            <SongStatusBadge Status="song.Status" />
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <!-- Detail card -->
+            @if (_selected != null)
+            {
+                <div class="lg:w-80 flex-shrink-0 card">
+                    <!-- Cover -->
+                    <div class="aspect-square rounded-xl overflow-hidden bg-[#252528] mb-4">
+                        @if (!string.IsNullOrEmpty(_selected.CoverImage))
+                        {
+                            <img src="@_selected.CoverImage" class="w-full h-full object-cover" />
+                        }
+                        else
+                        {
+                            <div class="w-full h-full flex items-center justify-center">
+                                <svg width="48" height="48" fill="none" stroke="var(--muted-foreground-3)" stroke-width="1.5" viewBox="0 0 24 24">
+                                    <path d="M9 18V5l12-2v13M9 18c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2zm12 0c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2z"/>
+                                </svg>
+                            </div>
+                        }
+                    </div>
+
+                    <!-- Info -->
+                    <h3 class="text-base font-semibold mb-1">@_selected.Title</h3>
+                    <p class="text-sm mb-1" style="color: var(--muted-foreground);">@_selected.ArtistUsername</p>
+                    <p class="text-xs mb-4" style="color: var(--muted-foreground-3);">
+                        @_selected.PlayCount plays · @_selected.LikeCount likes · @_selected.CreatedAt.ToString("dd/MM/yyyy")
+                    </p>
+
+                    <!-- Actions -->
+                    <div class="flex gap-2 mb-4">
+                        <button class="btn-primary flex-1" @onclick="Approve" disabled="@_acting">
+                            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path d="M20 6L9 17l-5-5"/>
+                            </svg>
+                            Duyệt
+                        </button>
+                        <button class="btn-danger flex-1" @onclick="ShowReject" disabled="@_acting">
+                            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                            </svg>
+                            Từ chối
+                        </button>
+                    </div>
+
+                    @if (_selected.Status == Enums.SongStatus.Rejected && !string.IsNullOrEmpty(_selected.RejectReason))
+                    {
+                        <div class="p-3 rounded-lg text-xs" style="background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.2); color: #f87171;">
+                            Đã từ chối: @_selected.RejectReason
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <EmptyState Title="Không có bài nào chờ duyệt" Description="Tất cả bài hát đã được xử lý." />
+    }
+</div>
+
+<!-- Reject Modal -->
+@if (_rejectOpen)
+{
+    <div class="modal-overlay" @onclick="() => _rejectOpen = false">
+        <div class="modal" @onclick:stopPropagation>
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-medium">Từ chối bài hát</h3>
+                <button class="btn-ghost p-1" @onclick="() => _rejectOpen = false">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="form-group mb-4">
+                <label class="label">Lý do từ chối (bắt buộc)</label>
+                <textarea class="input" rows="3" @bind="_rejectReason" placeholder="VD: Chất lượng âm thanh kém..."></textarea>
+            </div>
+            <div class="flex justify-end gap-3">
+                <button class="btn-ghost" @onclick="() => _rejectOpen = false">Hủy</button>
+                <button class="btn-danger" @onclick="Reject" disabled="@(string.IsNullOrWhiteSpace(_rejectReason))">Từ chối</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<SongDto>? _pending;
+    private SongDto? _selected;
+    private bool _loading;
+    private bool _acting;
+    private bool _rejectOpen;
+    private string _rejectReason = "";
+
+    protected override async Task OnInitializedAsync() => await Load();
+
+    private async Task Load()
+    {
+        _loading = true;
+        var result = await AdminService.GetPendingSongsAsync();
+        _loading = false;
+        if (result.IsSuccess) _pending = result.Data!;
+        if (_selected != null) _selected = _pending?.FirstOrDefault(s => s.Id == _selected!.Id);
+    }
+
+    private void SelectSong(SongDto song) { _selected = song; _rejectReason = ""; }
+
+    private async Task Approve()
+    {
+        if (_selected == null) return;
+        _acting = true;
+        var result = await AdminService.ReviewSongAsync(_selected.Id, new ReviewSongDto("approve", null));
+        _acting = false;
+        if (result.IsSuccess)
+        {
+            _pending?.Remove(_selected);
+            _selected = null;
+            Toast.Show(ToastType.Success, "Đã duyệt bài hát!");
+        }
+        else
+        {
+            Toast.Show(ToastType.Error, result.Error ?? "Lỗi");
+        }
+    }
+
+    private void ShowReject() => _rejectOpen = true;
+
+    private async Task Reject()
+    {
+        if (_selected == null || string.IsNullOrWhiteSpace(_rejectReason)) return;
+        _acting = true;
+        var result = await AdminService.ReviewSongAsync(_selected.Id, new ReviewSongDto("reject", _rejectReason));
+        _acting = false;
+        _rejectOpen = false;
+        if (result.IsSuccess)
+        {
+            _pending?.Remove(_selected);
+            _selected = null;
+            Toast.Show(ToastType.Success, "Đã từ chối bài hát.");
+        }
+        else
+        {
+            Toast.Show(ToastType.Error, result.Error ?? "Lỗi");
+        }
+    }
+}

@@ -1,0 +1,84 @@
+@page "/"
+@inject ISongService SongService
+@inject IPlayerService PlayerService
+@inject ICurrentUserService CurrentUser
+
+<div class="page-content">
+    <!-- Greeting -->
+    <div class="mb-8">
+        <p class="text-xs font-medium uppercase tracking-wider mb-1" style="color: var(--accent);">Xin chào</p>
+        <h1 class="text-2xl font-medium">@(CurrentUser.Username ?? "Người nghe")</h1>
+    </div>
+
+    @if (_loading)
+    {
+        <LoadingSpinner />
+    }
+    else if (_result?.IsSuccess == true && _result.Data!.Items.Count > 0)
+    {
+        <!-- New Releases grid -->
+        <section class="mb-10">
+            <div class="flex items-center gap-2 mb-4">
+                <svg width="15" height="15" fill="none" stroke="var(--accent)" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2z"/>
+                </svg>
+                <h2 class="text-lg font-medium">Mới nhất</h2>
+            </div>
+            <div class="grid gap-4"
+                 style="grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));">
+                @foreach (var item in _result.Data.Items.Select((s, i) => (Song: s, Index: i)))
+                {
+                    <SongCard Song="item.Song" Index="item.Index" OnClick="HandlePlay" />
+                }
+            </div>
+        </section>
+
+        <!-- Pagination -->
+        @if (_result.Data.TotalPages > 1)
+        {
+            <div class="flex justify-center gap-2 mt-6">
+                @for (int p = 1; p <= _result.Data.TotalPages; p++)
+                {
+                    <button class="w-8 h-8 rounded-lg text-sm font-medium transition-colors"
+                            style="background: @(p == _page ? "var(--accent)" : "var(--surface)"); color: @(p == _page ? "black" : "var(--foreground)");"
+                            @onclick="() => LoadPage(p)">
+                        @p
+                    </button>
+                }
+            </div>
+        }
+    }
+    else
+    {
+        <EmptyState Title="Chưa có bài hát nào" Description="Hãy là người đầu tiên upload bài hát!" />
+    }
+</div>
+
+@code {
+    private int _page = 1;
+    private ServiceResult<PagedResult<SongDto>>? _result;
+    private bool _loading;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadPage(1);
+    }
+
+    private async Task LoadPage(int page)
+    {
+        _loading = true;
+        _page = page;
+        _result = await SongService.GetApprovedSongsAsync(page);
+        _loading = false;
+        StateHasChanged();
+    }
+
+    private void HandlePlay(int index)
+    {
+        if (_result?.IsSuccess != true || _result.Data?.Items == null) return;
+        var songs = _result.Data.Items.Select(s => new PlayerSong(
+            s.Id, s.Title, s.CoverImage, s.AudioFile,
+            s.ArtistUsername, s.PlayCount, s.LikeCount, s.IsLiked)).ToList();
+        PlayerService.SetQueue(songs, index, "home");
+    }
+}

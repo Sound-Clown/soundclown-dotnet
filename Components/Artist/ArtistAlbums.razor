@@ -1,0 +1,202 @@
+@page "/artist/albums"
+@attribute [Authorize(Roles = "Artist")]
+@inject IAlbumService AlbumService
+@inject ISongService SongService
+@inject ICurrentUserService CurrentUser
+@inject IToastService Toast
+@inject NavigationManager Nav
+@inject IUploadService UploadService
+
+<div class="page-content">
+    <div class="flex items-center justify-between mb-6">
+        <div>
+            <h1 class="text-xl font-medium">Album</h1>
+            @if (_albums != null)
+            {
+                <p class="text-xs mt-0.5" style="color: var(--muted-foreground-2);">@_albums.Count album</p>
+            }
+        </div>
+        <button class="btn-primary" @onclick="NewAlbum">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            Tạo album
+        </button>
+    </div>
+
+    @if (_loading)
+    {
+        <LoadingSpinner />
+    }
+    else if (_albums != null && _albums.Count > 0)
+    {
+        <div class="grid gap-5" style="grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));">
+            @foreach (var album in _albums)
+            {
+                <div class="card p-0 overflow-hidden cursor-pointer group" @onclick="() => OpenAlbum(album)">
+                    <!-- Cover -->
+                    <div class="aspect-square bg-[#252528] relative">
+                        @if (!string.IsNullOrEmpty(album.CoverImage))
+                        {
+                            <img src="@album.CoverImage" class="w-full h-full object-cover" />
+                        }
+                        else
+                        {
+                            <div class="w-full h-full flex items-center justify-center">
+                                <svg width="40" height="40" fill="none" stroke="var(--muted-foreground-3)" stroke-width="1.5" viewBox="0 0 24 24">
+                                    <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/>
+                                </svg>
+                            </div>
+                        }
+                        <!-- Edit overlay -->
+                        <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                             @onclick:stopPropagation @onclick="() => OpenEdit(album)">
+                            <svg width="20" height="20" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24">
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <!-- Info -->
+                    <div class="p-4">
+                        <p class="text-sm font-medium truncate">@album.Name</p>
+                        <p class="text-xs" style="color: var(--muted-foreground-2);">@album.SongCount bài hát</p>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <EmptyState Title="Chưa có album nào" Description="Tạo album đầu tiên của bạn." />
+    }
+</div>
+
+<!-- Create/Edit Album Modal -->
+@if (_editOpen)
+{
+    <div class="modal-overlay" @onclick="CloseEdit">
+        <div class="modal" @onclick:stopPropagation>
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-medium">@(_editingAlbum == null ? "Tạo album mới" : "Sửa album")</h3>
+                <button class="btn-ghost p-1" @onclick="CloseEdit">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="form-group mb-4">
+                <label class="label">Tên album</label>
+                <input class="input" @bind="_editName" placeholder="VD: Album đầu tay" />
+            </div>
+            <div class="form-group mb-6">
+                <label class="label">Ảnh bìa (tùy chọn)</label>
+                <InputFile OnChange="HandleEditCover" accept=".jpg,.jpeg,.png,.webp" />
+            </div>
+
+            @if (!string.IsNullOrEmpty(_editError))
+            {
+                <div class="mb-4 p-3 rounded-lg text-sm" style="background: rgba(239,68,68,0.1); color: #f87171;">@_editError</div>
+            }
+
+            <div class="flex justify-end gap-3">
+                @if (_editingAlbum != null)
+                {
+                    <button class="btn-danger-ghost" @onclick="DoDeleteAlbum">Xóa</button>
+                }
+                <button class="btn-ghost" @onclick="CloseEdit">Hủy</button>
+                <button class="btn-primary" @onclick="SaveAlbum" disabled="@_editLoading">
+                    @if (_editLoading) { <span class="w-4 h-4 border-2 border-t-black rounded-full animate-spin"></span> }
+                    Lưu
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<AlbumListDto>? _albums;
+    private bool _loading;
+    private bool _editOpen;
+    private AlbumListDto? _editingAlbum;
+    private string _editName = "";
+    private string? _editCoverUrl;
+    private bool _editLoading;
+    private string _editError = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Load();
+    }
+
+    private async Task Load()
+    {
+        _loading = true;
+        var result = await AlbumService.GetArtistAlbumsAsync(CurrentUser.UserId!.Value);
+        _loading = false;
+        if (result.IsSuccess) _albums = result.Data!;
+    }
+
+    private void NewAlbum() { _editingAlbum = null; _editName = ""; _editCoverUrl = null; _editError = ""; _editOpen = true; }
+    private void OpenEdit(AlbumListDto album) { _editingAlbum = album; _editName = album.Name; _editCoverUrl = album.CoverImage; _editError = ""; _editOpen = true; }
+    private void OpenAlbum(AlbumListDto album) { Nav.NavigateTo($"/albums/{album.Id}"); }
+    private void CloseEdit() { _editOpen = false; }
+
+    private async Task HandleEditCover(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        await using var stream = file.OpenReadStream(maxAllowedSize: 2 * 1024 * 1024);
+        using var ms = new MemoryStream();
+        await stream.CopyToAsync(ms);
+        ms.Position = 0;
+        var upload = await UploadService.UploadImageAsync(ms, file.Name, file.ContentType, file.Size);
+        if (upload.IsSuccess)
+        {
+            _editCoverUrl = upload.Data!.Url;
+        }
+    }
+
+    private async Task SaveAlbum()
+    {
+        if (string.IsNullOrWhiteSpace(_editName)) { _editError = "Vui lòng nhập tên album."; return; }
+        _editLoading = true;
+        _editError = "";
+
+        ServiceResult<AlbumDto> result;
+        if (_editingAlbum == null)
+        {
+            var dto = new CreateAlbumDto(_editName, _editCoverUrl);
+            result = await AlbumService.CreateAsync(dto, CurrentUser.UserId!.Value);
+        }
+        else
+        {
+            var dto = new UpdateAlbumDto(_editName, _editCoverUrl);
+            result = await AlbumService.UpdateAsync(_editingAlbum.Id, dto, CurrentUser.UserId!.Value);
+        }
+
+        _editLoading = false;
+        if (result.IsSuccess)
+        {
+            _editOpen = false;
+            await Load();
+            Toast.Show(ToastType.Success, _editingAlbum == null ? "Đã tạo album!" : "Đã cập nhật album!");
+        }
+        else
+        {
+            _editError = result.Error ?? "Có lỗi xảy ra.";
+        }
+    }
+
+    private async Task DoDeleteAlbum()
+    {
+        if (_editingAlbum == null) return;
+        var result = await AlbumService.DeleteAsync(_editingAlbum.Id, CurrentUser.UserId!.Value);
+        if (result.IsSuccess)
+        {
+            _albums?.Remove(_editingAlbum);
+            _editOpen = false;
+            Toast.Show(ToastType.Success, "Đã xóa album.");
+        }
+    }
+}

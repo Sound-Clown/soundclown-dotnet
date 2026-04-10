@@ -1,0 +1,202 @@
+@page "/login"
+@layout AuthLayout
+@rendermode InteractiveServer
+@inject IAuthService AuthService
+@inject IToastService Toast
+
+<div class="text-center mb-8">
+    <div class="w-14 h-14 rounded-xl mx-auto mb-4 flex items-center justify-center"
+         style="background: var(--accent); box-shadow: 0 0 24px rgba(245, 166, 35, 0.2);">
+        <svg width="24" height="24" fill="black" viewBox="0 0 24 24">
+            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+            <line x1="12" y1="19" x2="12" y2="23"/>
+            <line x1="8" y1="23" x2="16" y2="23"/>
+        </svg>
+    </div>
+    <h1 class="text-2xl font-medium text-[var(--foreground)]">underground.fm</h1>
+    <p class="text-sm mt-1" style="color: var(--muted-foreground-2);">Where Music Meets Your Mood</p>
+</div>
+
+<div class="card">
+    <!-- Tab pills -->
+    <div class="flex mb-6 p-1 rounded-xl" style="background: var(--surface-2);">
+        <button type="button" class="flex-1 py-2 text-sm font-medium rounded-lg"
+                style="background: @(_tab == Tab.Login ? "var(--accent)" : "transparent"); color: @(_tab == Tab.Login ? "black" : "var(--muted-foreground)");"
+                @onclick="SwitchLogin">Đăng nhập</button>
+        <button type="button" class="flex-1 py-2 text-sm font-medium rounded-lg"
+                style="background: @(_tab == Tab.Register ? "var(--accent)" : "transparent"); color: @(_tab == Tab.Register ? "black" : "var(--muted-foreground)");"
+                @onclick="SwitchRegister">Đăng ký</button>
+    </div>
+
+    @if (_tab == Tab.Login)
+    {
+        <!-- Standard HTML form: POST to /auth/login → server sets cookie + redirects -->
+        <form action="/auth/login" method="post">
+            @if (!string.IsNullOrEmpty(_err))
+            {
+                <div class="mb-4 p-3 rounded-lg text-sm" style="background: rgba(239,68,68,0.08); color: #f87171; border: 1px solid rgba(239,68,68,0.15);">
+                    @_err
+                </div>
+            }
+            <div class="form-group mb-4">
+                <label class="label">Email hoặc Username</label>
+                <input class="input @(_err != null ? "form-field-error" : "")"
+                       name="identifier" placeholder="email@example.com" autocomplete="username" />
+            </div>
+            <div class="form-group mb-4">
+                <label class="label">Mật khẩu</label>
+                <div class="relative">
+                    <input class="input"
+                           name="password" type="@(_showPw ? "text" : "password")" placeholder="••••••••"
+                           autocomplete="current-password"
+                           style="padding-right: 2.5rem;" />
+                    <button type="button" class="absolute right-3 top-0 bottom-0 flex items-center"
+                            @onclick="TogglePw" style="color: var(--muted-foreground);">
+                        @if (_showPw) {
+                            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><line x1="1" y1="1" x2="23" y2="23"/>
+                            </svg>
+                        } else {
+                            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+                            </svg>
+                        }
+                    </button>
+                </div>
+            </div>
+            <button type="submit" class="btn-primary w-full">Đăng nhập</button>
+            <div class="mt-4 text-center">
+                <a href="/forgot-password" class="text-xs hover:underline" style="color: var(--muted-foreground);">Quên mật khẩu?</a>
+            </div>
+        </form>
+    }
+    else
+    {
+        <!-- REGISTER FORM -->
+        <form @onsubmit:preventDefault @onsubmit="DoRegister">
+            <div class="form-group mb-4">
+                <label class="label">Username</label>
+                <input class="input" @bind="_regUser" placeholder="nguyenvana" autocomplete="username" />
+            </div>
+            <div class="form-group mb-4">
+                <label class="label">Email</label>
+                <input class="input" type="email" @bind="_regEmail" placeholder="email@example.com" autocomplete="email" />
+            </div>
+            <div class="form-group mb-4">
+                <label class="label">Mật khẩu</label>
+                <input class="input" type="password" @bind="_regPw" @oninput="CalcStrength" placeholder="••••••••" autocomplete="new-password" />
+                <div class="strength-bar mt-1">
+                    @for (int i = 0; i < 4; i++) {
+                        <div class="strength-segment @(_str > i ? _strClass : "")"></div>
+                    }
+                </div>
+            </div>
+            <div class="form-group mb-6">
+                <label class="label">Bạn là ai?</label>
+                <div class="grid grid-cols-2 gap-3">
+                    <button type="button" class="p-4 rounded-xl border text-left transition-all"
+                            style="border-color: @(_regRole == "Listener" ? "var(--accent)" : "var(--border)");
+                                   background: @(_regRole == "Listener" ? "rgba(245,166,35,0.05)" : "transparent");"
+                            @onclick="PickListener">
+                        <svg class="mb-2" width="20" height="20" fill="none" stroke="var(--accent)" stroke-width="1.5" viewBox="0 0 24 24">
+                            <path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/>
+                        </svg>
+                        <p class="text-sm font-medium text-[var(--foreground)]">Người nghe</p>
+                        <p class="text-xs mt-0.5" style="color: var(--muted-foreground-2);">Khám phá nhạc mới</p>
+                    </button>
+                    <button type="button" class="p-4 rounded-xl border text-left transition-all"
+                            style="border-color: @(_regRole == "Artist" ? "var(--accent)" : "var(--border)");
+                                   background: @(_regRole == "Artist" ? "rgba(245,166,35,0.05)" : "transparent");"
+                            @onclick="PickArtist">
+                        <svg class="mb-2" width="20" height="20" fill="none" stroke="var(--accent)" stroke-width="1.5" viewBox="0 0 24 24">
+                            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/>
+                        </svg>
+                        <p class="text-sm font-medium text-[var(--foreground)]">Nghệ sĩ</p>
+                        <p class="text-xs mt-0.5" style="color: var(--muted-foreground-2);">Upload &amp; chia sẻ nhạc</p>
+                    </button>
+                </div>
+            </div>
+            @if (!string.IsNullOrEmpty(_regErr)) {
+                <div class="mb-4 p-3 rounded-lg text-sm" style="background: rgba(239,68,68,0.08); color: #f87171; border: 1px solid rgba(239,68,68,0.15);">
+                    @_regErr
+                </div>
+            }
+            <button type="submit" class="btn-primary w-full" disabled="@_loading">
+                @if (_loading) { <span class="w-4 h-4 border-2 border-t-black rounded-full animate-spin"></span> }
+                Tạo tài khoản
+            </button>
+        </form>
+    }
+</div>
+
+@code {
+    private enum Tab { Login, Register }
+    private Tab _tab = Tab.Login;
+
+    [Parameter, SupplyParameterFromQuery] public string? error { get; set; }
+    private string? _err;
+
+    // Login
+    private bool _showPw;
+
+    // Register
+    private string _regUser = "";
+    private string _regEmail = "";
+    private string _regPw = "";
+    private string _regRole = "Listener";
+    private string _regErr = "";
+    private int _str;
+    private string _strClass = "";
+    private bool _loading;
+
+    protected override void OnInitialized()
+    {
+        _err = error;
+    }
+
+    private void SwitchLogin() { _tab = Tab.Login; _err = null; _regErr = ""; }
+    private void SwitchRegister() { _tab = Tab.Register; _err = null; _regErr = ""; }
+    private void PickListener() => _regRole = "Listener";
+    private void PickArtist() => _regRole = "Artist";
+    private void TogglePw() => _showPw = !_showPw;
+
+    private void CalcStrength()
+    {
+        var p = _regPw;
+        if (string.IsNullOrEmpty(p)) { _str = 0; _strClass = ""; return; }
+        int s = 0;
+        if (p.Length >= 8) s++;
+        if (p.Length >= 12) s++;
+        if (p.Any(char.IsUpper) && p.Any(char.IsLower)) s++;
+        if (p.Any(char.IsDigit) && p.Any(c => !char.IsLetterOrDigit(c))) s++;
+        _str = s;
+        _strClass = s <= 1 ? "red" : s <= 3 ? "amber" : "green";
+    }
+
+    private async Task DoRegister()
+    {
+        _loading = true;
+        _regErr = "";
+
+        if (string.IsNullOrWhiteSpace(_regUser))
+        { _regErr = "Vui lòng nhập username."; _loading = false; return; }
+        if (string.IsNullOrWhiteSpace(_regEmail) || !_regEmail.Contains("@"))
+        { _regErr = "Vui lòng nhập email hợp lệ."; _loading = false; return; }
+        if (string.IsNullOrWhiteSpace(_regPw) || _regPw.Length < 6)
+        { _regErr = "Mật khẩu phải ít nhất 6 ký tự."; _loading = false; return; }
+
+        var result = await AuthService.RegisterAsync(new RegisterDto(_regUser, _regEmail, _regPw, _regRole));
+        _loading = false;
+
+        if (result.IsSuccess)
+        {
+            Toast.Show(ToastType.Success, "Tạo tài khoản thành công! Vui lòng đăng nhập.");
+            SwitchLogin();
+        }
+        else
+        {
+            _regErr = result.Error ?? "Đăng ký thất bại.";
+        }
+    }
+}

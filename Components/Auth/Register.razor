@@ -1,0 +1,141 @@
+@page "/register"
+@layout AuthLayout
+@inject IAuthService AuthService
+@inject NavigationManager Nav
+@inject IToastService Toast
+
+<div class="text-center mb-8">
+    <div class="w-14 h-14 rounded-xl mx-auto mb-4 flex items-center justify-center"
+         style="background: var(--accent); box-shadow: 0 0 24px rgba(245, 166, 35, 0.2);">
+        <svg width="24" height="24" fill="black" viewBox="0 0 24 24">
+            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+            <line x1="12" y1="19" x2="12" y2="23"/>
+            <line x1="8" y1="23" x2="16" y2="23"/>
+        </svg>
+    </div>
+    <h1 class="text-2xl font-medium text-[var(--foreground)]">Tạo tài khoản</h1>
+    <p class="text-sm mt-1" style="color: var(--muted-foreground-2);">Tham gia underground.fm ngay hôm nay.</p>
+</div>
+
+<div class="card">
+    <!-- Tab pills -->
+    <div class="flex mb-6 p-1 rounded-xl" style="background: var(--surface-2);">
+        <button class="flex-1 py-2 text-sm font-medium rounded-lg transition-colors"
+                style="color: var(--muted-foreground);"
+                @onclick='() => Nav.NavigateTo("/login")'>Đăng nhập</button>
+        <button class="flex-1 py-2 text-sm font-medium rounded-lg transition-colors"
+                style="background: var(--accent); color: black;">Đăng ký</button>
+    </div>
+
+    <form @onsubmit="HandleSubmit">
+        <!-- Username -->
+        <div class="form-group mb-4">
+            <label class="label">Username</label>
+            <input class="input" @bind="_username" placeholder="nguyenvana" />
+            @if (_errors.TryGetValue("Username", out var uErr))
+            {
+                foreach (var e in uErr) { <span class="form-error">@e</span> }
+            }
+        </div>
+
+        <!-- Email -->
+        <div class="form-group mb-4">
+            <label class="label">Email</label>
+            <input class="input" type="email" @bind="_email" placeholder="email@example.com" />
+            @if (_errors.TryGetValue("Email", out var eErr))
+            {
+                foreach (var e in eErr) { <span class="form-error">@e</span> }
+            }
+        </div>
+
+        <!-- Password -->
+        <div class="form-group mb-4">
+            <label class="label">Mật khẩu</label>
+            <input class="input" type="password" @bind="_password" placeholder="••••••••" />
+            @if (_errors.TryGetValue("Password", out var pErr))
+            {
+                foreach (var e in pErr) { <span class="form-error">@e</span> }
+            }
+        </div>
+
+        <!-- Role cards -->
+        <div class="mb-6">
+            <label class="label">Bạn là ai?</label>
+            <div class="grid grid-cols-2 gap-3">
+                <button type="button" class="p-4 rounded-xl border text-left transition-all"
+                        style="border-color: @(_selectedRole == "Listener" ? "var(--accent)" : "var(--border)"); background: @(_selectedRole == "Listener" ? "rgba(245,166,35,0.05)" : "transparent");"
+                        @onclick='() => _selectedRole = "Listener"'>
+                    <svg class="mb-2" width="22" height="22" fill="none" stroke="var(--accent)" stroke-width="1.5" viewBox="0 0 24 24">
+                        <path d="M3 18v-6a9 9 0 0 1 18 0v6"/>
+                        <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/>
+                    </svg>
+                    <p class="text-sm font-medium text-[var(--foreground)]">Tôi muốn nghe nhạc</p>
+                    <p class="text-xs mt-0.5" style="color: var(--muted-foreground-2);">Khám phá, thưởng thức</p>
+                </button>
+                <button type="button" class="p-4 rounded-xl border text-left transition-all"
+                        style="border-color: @(_selectedRole == "Artist" ? "var(--accent)" : "var(--border)"); background: @(_selectedRole == "Artist" ? "rgba(245,166,35,0.05)" : "transparent");"
+                        @onclick='() => _selectedRole = "Artist"'>
+                    <svg class="mb-2" width="22" height="22" fill="none" stroke="var(--accent)" stroke-width="1.5" viewBox="0 0 24 24">
+                        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                        <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                        <line x1="12" y1="19" x2="12" y2="23"/>
+                        <line x1="8" y1="23" x2="16" y2="23"/>
+                    </svg>
+                    <p class="text-sm font-medium text-[var(--foreground)]">Tôi là Artist</p>
+                    <p class="text-xs mt-0.5" style="color: var(--muted-foreground-2);">Upload và kiếm người nghe</p>
+                </button>
+            </div>
+        </div>
+
+        <!-- Global error -->
+        @if (!string.IsNullOrEmpty(_errorMsg))
+        {
+            <div class="mb-4 p-3 rounded-lg text-sm" style="background: rgba(239,68,68,0.1); color: #f87171; border: 1px solid rgba(239,68,68,0.2);">
+                @_errorMsg
+            </div>
+        }
+
+        <button type="submit" class="btn-primary w-full" disabled="@_loading">
+            @if (_loading) {
+                <span class="w-4 h-4 border-2 border-t-black rounded-full animate-spin"></span>
+            }
+            Tạo tài khoản
+        </button>
+    </form>
+</div>
+
+@code {
+    private string _username = "";
+    private string _email = "";
+    private string _password = "";
+    private string _selectedRole = "Listener";
+    private bool _loading;
+    private string _errorMsg = "";
+    private Dictionary<string, string[]> _errors = new();
+
+    private async Task HandleSubmit()
+    {
+        _loading = true;
+        _errorMsg = "";
+        _errors = new();
+
+        var dto = new RegisterDto(_username, _email, _password, _selectedRole);
+        var result = await AuthService.RegisterAsync(dto);
+
+        _loading = false;
+
+        if (result.IsSuccess)
+        {
+            Toast.Show(ToastType.Success, "Đăng ký thành công! Vui lòng đăng nhập.");
+            Nav.NavigateTo("/login");
+        }
+        else
+        {
+            if (result.FieldErrors != null && result.FieldErrors.Count > 0)
+                _errors = result.FieldErrors;
+            else
+                _errorMsg = result.Error ?? "Đăng ký thất bại.";
+        }
+    }
+}

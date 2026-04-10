@@ -1,0 +1,105 @@
+@page "/albums/{Id:int}"
+@inject IAlbumService AlbumService
+@inject IPlayerService PlayerService
+@inject ICurrentUserService CurrentUser
+@inject NavigationManager Nav
+
+<div class="page-content">
+    @if (_loading)
+    {
+        <LoadingSpinner />
+    }
+    else if (_album != null)
+    {
+        <div class="max-w-2xl mx-auto">
+            <!-- Back -->
+            <button class="flex items-center gap-2 mb-6 text-sm hover:underline"
+                    style="color: var(--muted-foreground);"
+                    @onclick='() => Nav.NavigateTo("/")'>
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <polyline points="15 18 9 12 15 6"/>
+                </svg>
+                Quay lại
+            </button>
+
+            <!-- Album header -->
+            <div class="flex gap-6 items-center mb-8">
+                @if (!string.IsNullOrEmpty(_album.CoverImage))
+                {
+                    <img src="@_album.CoverImage" alt="@_album.Name"
+                         class="w-32 h-32 rounded-xl object-cover flex-shrink-0" />
+                }
+                else
+                {
+                    <div class="w-32 h-32 rounded-xl bg-[#252528] flex items-center justify-center flex-shrink-0">
+                        <svg width="40" height="40" fill="none" stroke="var(--muted-foreground-3)" stroke-width="1.5" viewBox="0 0 24 24">
+                            <circle cx="12" cy="12" r="10"/>
+                            <circle cx="12" cy="12" r="3"/>
+                        </svg>
+                    </div>
+                }
+
+                <div>
+                    <p class="text-sm font-medium mb-1" style="color: var(--muted-foreground);">Album</p>
+                    <h1 class="text-xl font-semibold mb-1">@_album.Name</h1>
+                    <p class="text-sm" style="color: var(--muted-foreground);">@_album.ArtistUsername</p>
+                    <p class="text-xs mt-1" style="color: var(--muted-foreground-3);">@_album.SongCount bài hát</p>
+                    <button class="btn-primary mt-3" @onclick="PlayAll">
+                        <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg>
+                        Phát tất cả
+                    </button>
+                </div>
+            </div>
+
+            <!-- Songs -->
+            @if (_album.Songs.Count > 0)
+            {
+                <div class="space-y-1">
+                    @foreach (var (song, i) in _album.Songs.Select((s, i) => (s, i)))
+                    {
+                        <SongRow Song="song" Index="i" ShowAlbum="false"
+                                 OnClick="HandlePlay" OnToggleLike="() => { }" />
+                    }
+                </div>
+            }
+            else
+            {
+                <EmptyState Title="Album trống" Description="Chưa có bài hát nào trong album này." />
+            }
+        </div>
+    }
+    else
+    {
+        <EmptyState Title="Không tìm thấy album" />
+    }
+</div>
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private AlbumDto? _album;
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var result = await AlbumService.GetByIdAsync(Id);
+        _loading = false;
+        if (result.IsSuccess) _album = result.Data;
+        StateHasChanged();
+    }
+
+    private void HandlePlay(int index)
+    {
+        if (_album == null) return;
+        var songs = _album.Songs.Select(s => new PlayerSong(
+            s.Id, s.Title, s.CoverImage, s.AudioFile,
+            s.ArtistUsername, s.PlayCount, s.LikeCount, s.IsLiked)).ToList();
+        PlayerService.SetQueue(songs, index, "album");
+    }
+
+    private void PlayAll()
+    {
+        if (_album != null && _album.Songs.Count > 0)
+            HandlePlay(0);
+    }
+}

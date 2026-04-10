@@ -1,0 +1,203 @@
+@inherits LayoutComponentBase
+@implements IDisposable
+@inject ICurrentUserService CurrentUser
+@inject IPlayerService PlayerService
+@inject NavigationManager Nav
+
+@if (!CurrentUser.IsAuthenticated)
+{
+    @* Redirect handled in OnInitialized below *@
+}
+
+<div class="flex h-screen overflow-hidden" style="background: var(--background);">
+
+	<!-- Mobile overlay backdrop -->
+	@if (_sidebarOpen)
+	{
+		<div class="fixed inset-0 bg-black/70 z-40 md:hidden" @onclick="() => _sidebarOpen = false"></div>
+	}
+
+	<!-- Sidebar -->
+	<aside class="@(_sidebarOpen ? "translate-x-0" : "-translate-x-full")
+				fixed md:static top-0 left-0 h-full w-60 z-50 flex flex-col
+				transition-transform duration-300 ease-in-out
+				border-r" style="background: var(--background); border-color: var(--border);">
+
+		<!-- Logo -->
+		<div class="flex items-center gap-3 px-5 h-16 border-b flex-shrink-0" style="border-color: var(--border);">
+			<div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+				 style="background: var(--accent); box-shadow: 0 0 16px rgba(245, 166, 35, 0.3);">
+				<svg width="15" height="15" fill="black" viewBox="0 0 24 24">
+					<path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+					<path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+					<line x1="12" y1="19" x2="12" y2="23"/>
+					<line x1="8" y1="23" x2="16" y2="23"/>
+				</svg>
+			</div>
+			<span class="font-semibold text-sm tracking-tight" style="color: var(--foreground);">underground.fm</span>
+		</div>
+
+		<!-- Navigation -->
+		<nav class="flex-1 overflow-y-auto px-3 pt-4 pb-2 space-y-0.5">
+			@foreach (var item in _navItems)
+			{
+				<NavLink href="@item.Href" class="nav-item" ActiveClass="nav-item-active" Match="@item.Match">
+					@((MarkupString)item.Icon)
+					<span>@item.Label</span>
+				</NavLink>
+			}
+
+			@if (CurrentUser.IsAdmin)
+			{
+				<div class="pt-4 mt-2 mb-1">
+					<p class="px-3 mb-2 text-xs font-semibold uppercase tracking-wider" style="color: var(--muted-foreground-3);">
+						Quản trị
+					</p>
+					<NavLink href="/admin/songs" class="nav-item" ActiveClass="nav-item-active">
+						<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+							<path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/>
+							<rect x="9" y="3" width="6" height="4" rx="1"/>
+						</svg>
+						<span>Duyệt bài</span>
+					</NavLink>
+					<NavLink href="/admin/users" class="nav-item" ActiveClass="nav-item-active">
+						<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+							<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+							<circle cx="9" cy="7" r="4"/>
+							<path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
+						</svg>
+						<span>Người dùng</span>
+					</NavLink>
+				</div>
+			}
+		</nav>
+
+		<!-- User card + logout -->
+		<div class="border-t flex-shrink-0" style="border-color: var(--border);">
+			@if (CurrentUser.IsAuthenticated)
+			{
+				<div class="px-4 py-4">
+					<div class="flex items-center gap-3">
+						<div class="w-9 h-9 rounded-full flex items-center justify-center text-sm font-semibold flex-shrink-0"
+							 style="background: var(--accent); color: black;">
+							@GetUsernameFirstChar()
+						</div>
+						<div class="min-w-0 flex-1">
+							<p class="text-sm font-medium truncate leading-tight" style="color: var(--foreground);">@CurrentUser.Username</p>
+							<div class="mt-0.5">
+								<RoleBadge Role="@(CurrentUser.Role ?? MusicApp.Enums.Role.Listener)" />
+							</div>
+						</div>
+					</div>
+				</div>
+			}
+			<!-- Logout -->
+			<div class="px-3 pb-4">
+				<form action="/auth/logout" method="post">
+					<button type="submit" class="nav-item">
+						<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+							<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+							<polyline points="16 17 21 12 16 7"/>
+							<line x1="21" y1="12" x2="9" y2="12"/>
+						</svg>
+						<span>Đăng xuất</span>
+					</button>
+				</form>
+			</div>
+		</div>
+	</aside>
+
+	<!-- Main area -->
+	<div class="flex-1 flex flex-col min-w-0 overflow-hidden">
+		<!-- Mobile header -->
+		<header class="flex items-center justify-between h-14 px-4 border-b md:hidden"
+				style="border-color: var(--border);">
+			<button @onclick="() => _sidebarOpen = true" class="p-2 hover:bg-white/5 rounded-lg">
+				<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+					<line x1="3" y1="6" x2="21" y2="6"/>
+					<line x1="3" y1="12" x2="21" y2="12"/>
+					<line x1="3" y1="18" x2="21" y2="18"/>
+				</svg>
+			</button>
+			<div class="flex items-center gap-2">
+				<div class="w-7 h-7 rounded-md flex items-center justify-center flex-shrink-0"
+					 style="background: var(--accent);">
+					<svg width="12" height="12" fill="black" viewBox="0 0 24 24">
+						<path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+					</svg>
+				</div>
+				<span class="text-sm font-semibold">underground.fm</span>
+			</div>
+			<div class="w-10"></div>
+		</header>
+
+		<!-- Page content -->
+		<main class="flex-1 overflow-y-auto pb-20">
+			@Body
+		</main>
+	</div>
+</div>
+
+
+<!-- Player Bar -->
+@if (PlayerService.CurrentSong != null)
+{
+	<PlayerBar />
+}
+
+@code {
+	private bool _sidebarOpen;
+	private List<NavItem> _navItems = new();
+
+	protected override void OnInitialized()
+	{
+		BuildNav();
+		if (!CurrentUser.IsAuthenticated)
+		{
+			Nav.NavigateTo("/login", forceLoad: false);
+		}
+	}
+
+	private void BuildNav()
+	{
+		_navItems = new List<NavItem>
+		{
+			new NavItem("/", "Trang chủ", Icons.Home, NavLinkMatch.All),
+			new NavItem("/search", "Tìm kiếm", Icons.Search, NavLinkMatch.Prefix),
+			new NavItem("/settings", "Cài đặt", Icons.Settings, NavLinkMatch.Prefix),
+		};
+
+		if (CurrentUser.IsArtist)
+		{
+			_navItems.AddRange(new[]
+			{
+				new NavItem("/artist/songs", "Bài của tôi", Icons.ListMusic, NavLinkMatch.Prefix),
+				new NavItem("/artist/upload", "Upload", Icons.Upload, NavLinkMatch.Prefix),
+				new NavItem("/artist/albums", "Album", Icons.Disc, NavLinkMatch.Prefix),
+				new NavItem("/artist/stats", "Thống kê", Icons.BarChart, NavLinkMatch.Prefix),
+			});
+		}
+	}
+
+
+		private string GetUsernameFirstChar()
+	{
+		var u = CurrentUser.Username;
+		return string.IsNullOrEmpty(u) ? "?" : u.First().ToString().ToUpper();
+	}
+
+	public void Dispose() { }
+
+	private record NavItem(string Href, string Label, string Icon, NavLinkMatch Match);
+
+	private static class Icons
+	{
+		public const string Home = """<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>""";
+		public const string Search = """<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>""";
+		public const string Settings = """<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>""";
+		public const string ListMusic = """<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>""";
+		public const string Upload = """<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>""";
+		public const string Disc = """<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>""";
+		public const string BarChart = """<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>""";
+	}
+}

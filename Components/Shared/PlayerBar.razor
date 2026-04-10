@@ -1,0 +1,372 @@
+@implements IDisposable
+@inject IPlayerService Player
+@inject ISongService SongService
+@inject ICurrentUserService CurrentUser
+@inject IToastService Toast
+@inject IJSRuntime JSRuntime
+
+<div class="fixed bottom-0 left-0 right-0 z-40 border-t"
+     style="background: var(--player-bg); border-color: var(--border); box-shadow: 0 -4px 24px rgba(0,0,0,0.4);">
+
+    <!-- Progress bar line at very top -->
+    <div class="h-0.5 w-full" style="background: #333340;">
+        <div class="h-full transition-all duration-1000"
+             style="background: var(--accent); width: @_progressPercent%;"></div>
+    </div>
+
+    <!-- Content -->
+    <div class="flex items-center gap-4 px-4 h-16 md:h-20">
+        <!-- Track info -->
+        <div class="flex items-center gap-3 flex-shrink-0" style="width: 220px; max-width: 30vw;">
+            @if (Player.CurrentSong != null)
+            {
+                @if (!string.IsNullOrEmpty(Player.CurrentSong.CoverImage))
+                {
+                    <img src="@Player.CurrentSong.CoverImage" alt="@Player.CurrentSong.Title"
+                         class="w-10 h-10 md:w-12 md:h-12 rounded-lg object-cover flex-shrink-0 cursor-pointer"
+                         @onclick="ShowOverlay" />
+                }
+                else
+                {
+                    <div class="w-10 h-10 md:w-12 md:h-12 rounded-lg bg-[#252528] flex items-center justify-center flex-shrink-0 cursor-pointer"
+                         @onclick="ShowOverlay">
+                        <svg width="16" height="16" fill="none" stroke="var(--muted-foreground-3)" stroke-width="1.5" viewBox="0 0 24 24">
+                            <path d="M9 18V5l12-2v13M9 18c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2zm12 0c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2z"/>
+                        </svg>
+                    </div>
+                }
+                <div class="min-w-0">
+                    <p class="text-sm font-medium truncate cursor-pointer"
+                       @onclick="ShowOverlay">@Player.CurrentSong.Title</p>
+                    <p class="text-xs truncate" style="color: var(--muted-foreground);">@Player.CurrentSong.ArtistUsername</p>
+                </div>
+            }
+        </div>
+
+        <!-- Playback controls (center) -->
+        <div class="flex-1 flex flex-col items-center gap-1 md:gap-2">
+            <!-- Buttons -->
+            <div class="flex items-center gap-3 md:gap-5">
+                <button class="btn-ghost p-1.5 hidden md:block" @onclick="() => Player.Prev()">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <polygon points="19 20 9 12 19 4 19 20"/>
+                        <line x1="5" y1="19" x2="5" y2="5"/>
+                    </svg>
+                </button>
+
+                <button class="w-9 h-9 md:w-11 md:h-11 rounded-full flex items-center justify-center transition-colors"
+                         style="background: var(--foreground);"
+                         @onclick="TogglePlay">
+                    @if (Player.IsPlaying)
+                    {
+                        <svg width="15" height="15" fill="black" viewBox="0 0 24 24">
+                            <rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>
+                        </svg>
+                    }
+                    else
+                    {
+                        <svg width="15" height="15" fill="black" viewBox="0 0 24 24">
+                            <polygon points="5,3 19,12 5,21"/>
+                        </svg>
+                    }
+                </button>
+
+                <button class="btn-ghost p-1.5 hidden md:block" @onclick="() => Player.Next()">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <polygon points="5 4 15 12 5 20 5 4"/>
+                        <line x1="19" y1="5" x2="19" y2="19"/>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Progress + time (desktop) -->
+            <div class="hidden md:flex items-center gap-2 w-full max-w-md">
+                <span class="text-xs" style="color: var(--muted-foreground-3);">@_currentTime</span>
+                <input type="range" class="flex-1" style="height: 3px;"
+                       min="0" max="@_duration" value="@_current"
+                       @oninput="Seek" />
+                <span class="text-xs" style="color: var(--muted-foreground-3);">@_totalTime</span>
+            </div>
+        </div>
+
+        <!-- Right actions -->
+        <div class="flex items-center gap-2 flex-shrink-0" style="width: 120px; justify-content: flex-end;">
+            <button class="btn-ghost p-1.5 hidden md:block"
+                    @onclick="ToggleLike">
+                <svg width="16" height="16" fill="@(_liked ? "var(--accent)" : "none")"
+                     stroke="@(_liked ? "var(--accent)" : "currentColor")" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                </svg>
+            </button>
+
+            <button class="btn-ghost p-1.5" @onclick="Share">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <circle cx="18" cy="5" r="3"/>
+                    <circle cx="6" cy="12" r="3"/>
+                    <circle cx="18" cy="19" r="3"/>
+                    <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+                    <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+                </svg>
+            </button>
+
+            <button class="btn-ghost p-1.5 md:hidden" @onclick="ShowOverlay">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <polyline points="18 15 12 9 6 15"/>
+                </svg>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Now Playing Overlay -->
+@if (_overlayOpen)
+{
+    <div class="fixed inset-0 z-50 flex flex-col"
+         style="background: var(--background);">
+        <!-- Background blur -->
+        @if (Player.CurrentSong?.CoverImage != null)
+        {
+            <div class="absolute inset-0"
+                 style="background: url('@Player.CurrentSong.CoverImage') center/cover; filter: blur(40px) brightness(0.3); transform: scale(1.1);">
+            </div>
+        }
+        <div class="relative flex flex-col h-full">
+            <!-- Header -->
+            <div class="flex items-center justify-between p-4">
+                <button @onclick="() => _overlayOpen = false">
+                    <svg width="20" height="20" fill="none" stroke="var(--muted-foreground)" stroke-width="2" viewBox="0 0 24 24">
+                        <polyline points="18 15 12 9 6 15"/>
+                    </svg>
+                </button>
+                <p class="text-xs font-medium uppercase tracking-wider" style="color: var(--muted-foreground);">Đang phát</p>
+                <button @onclick="() => _overlayOpen = false">
+                    <svg width="20" height="20" fill="none" stroke="var(--muted-foreground)" stroke-width="2" viewBox="0 0 24 24">
+                        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Album art -->
+            <div class="flex-1 flex flex-col items-center justify-center px-8 gap-6">
+                @if (!string.IsNullOrEmpty(Player.CurrentSong?.CoverImage))
+                {
+                    <img src="@Player.CurrentSong.CoverImage" alt="@Player.CurrentSong.Title"
+                         class="w-56 h-56 md:w-72 md:h-72 rounded-2xl object-cover shadow-2xl" />
+                }
+                else
+                {
+                    <div class="w-56 h-56 md:w-72 md:h-72 rounded-2xl bg-[#252528] flex items-center justify-center shadow-2xl">
+                        <svg width="64" height="64" fill="none" stroke="var(--muted-foreground-3)" stroke-width="1.5" viewBox="0 0 24 24">
+                            <path d="M9 18V5l12-2v13M9 18c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2zm12 0c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2z"/>
+                        </svg>
+                    </div>
+                }
+
+                <!-- Track info -->
+                <div class="text-center w-full max-w-xs">
+                    <h2 class="text-lg font-semibold truncate">@Player.CurrentSong?.Title</h2>
+                    <p class="text-sm" style="color: var(--muted-foreground);">@Player.CurrentSong?.ArtistUsername</p>
+                </div>
+
+                <!-- Progress -->
+                <div class="w-full max-w-xs">
+                    <input type="range" class="w-full"
+                           min="0" max="@_duration" value="@_current"
+                           @oninput="SeekOverlay" />
+                    <div class="flex justify-between text-xs mt-1" style="color: var(--muted-foreground-3);">
+                        <span>@_currentTime</span>
+                        <span>@_totalTime</span>
+                    </div>
+                </div>
+
+                <!-- Controls -->
+                <div class="flex items-center gap-6">
+                    <button class="btn-ghost p-2" @onclick="() => Player.Prev()">
+                        <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <polygon points="19 20 9 12 19 4 19 20"/>
+                            <line x1="5" y1="19" x2="5" y2="5"/>
+                        </svg>
+                    </button>
+
+                    <button class="w-16 h-16 rounded-full flex items-center justify-center"
+                            style="background: var(--accent);"
+                            @onclick="TogglePlay">
+                        @if (Player.IsPlaying)
+                        {
+                            <svg width="22" height="22" fill="black" viewBox="0 0 24 24">
+                                <rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>
+                            </svg>
+                        }
+                        else
+                        {
+                            <svg width="22" height="22" fill="black" viewBox="0 0 24 24">
+                                <polygon points="5,3 19,12 5,21"/>
+                            </svg>
+                        }
+                    </button>
+
+                    <button class="btn-ghost p-2" @onclick="() => Player.Next()">
+                        <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <polygon points="5 4 15 12 5 20 5 4"/>
+                            <line x1="19" y1="5" x2="19" y2="19"/>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Actions -->
+                <div class="flex gap-4 mt-2">
+                    <button class="btn-ghost" @onclick="ToggleLike">
+                        <svg width="22" height="22" fill="@(_liked ? "var(--accent)" : "none")"
+                             stroke="@(_liked ? "var(--accent)" : "currentColor")" stroke-width="2" viewBox="0 0 24 24">
+                            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                        </svg>
+                    </button>
+                    <button class="btn-ghost" @onclick="Share">
+                        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <circle cx="18" cy="5" r="3"/>
+                            <circle cx="6" cy="12" r="3"/>
+                            <circle cx="18" cy="19" r="3"/>
+                            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+                            <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private bool _overlayOpen;
+    private bool _liked;
+    private int _current;
+    private int _duration = 1;
+    private string _currentTime = "0:00";
+    private string _totalTime = "0:00";
+    private string _progressPercent => _duration > 0 ? $"{(_current * 100.0 / _duration):F1}" : "0";
+    private DotNetObjectReference<PlayerBar>? _dotNetRef;
+    private bool _playCountScheduled;
+
+    protected override void OnInitialized()
+    {
+        Player.OnChange += OnPlayerChange;
+        _dotNetRef = DotNetObjectReference.Create(this);
+    }
+
+    private async void OnPlayerChange()
+    {
+        _playCountScheduled = false;
+        _liked = Player.CurrentSong?.IsLiked ?? false;
+        StateHasChanged();
+        if (Player.IsPlaying && Player.CurrentSong != null)
+        {
+            await JSRuntime.InvokeVoidAsync("musicPlayer.play", Player.CurrentSong.AudioUrl);
+            await JSRuntime.InvokeVoidAsync("musicPlayer.setOnEnded", _dotNetRef);
+            await JSRuntime.InvokeVoidAsync("musicPlayer.setOnTimeUpdate", _dotNetRef);
+            await JSRuntime.InvokeVoidAsync("musicPlayer.setOnCanPlay", _dotNetRef);
+            _ = SchedulePlayCount();
+        }
+        else
+        {
+            await JSRuntime.InvokeVoidAsync("musicPlayer.pause");
+        }
+    }
+
+    private async Task SchedulePlayCount()
+    {
+        await JSRuntime.InvokeVoidAsync("schedulePlayCount", _dotNetRef);
+    }
+
+    [JSInvokable]
+    public void OnSongEnded()
+    {
+        Player.Next();
+    }
+
+    [JSInvokable]
+    public async void OnTimeUpdate(int seconds)
+    {
+        _current = seconds;
+        _currentTime = FormatDuration(seconds);
+        await InvokeAsync(StateHasChanged);
+    }
+
+    [JSInvokable]
+    public async void OnCanPlay(int totalSeconds)
+    {
+        _duration = totalSeconds;
+        _totalTime = FormatDuration(totalSeconds);
+        await InvokeAsync(StateHasChanged);
+    }
+
+    [JSInvokable]
+    public async Task OnPlayThreshold()
+    {
+        if (Player.CurrentSong != null && !_playCountScheduled)
+        {
+            _playCountScheduled = true;
+            await SongService.IncrementPlayCountAsync(Player.CurrentSong.Id);
+        }
+    }
+
+    private void TogglePlay() => Player.TogglePlay();
+
+    private async Task Seek(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var val))
+        {
+            _current = val;
+            await JSRuntime.InvokeVoidAsync("musicPlayer.seek", val);
+        }
+    }
+
+    private async Task SeekOverlay(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var val))
+        {
+            _current = val;
+            await JSRuntime.InvokeVoidAsync("musicPlayer.seek", val);
+        }
+    }
+
+    private async Task ToggleLike()
+    {
+        if (Player.CurrentSong == null || CurrentUser.UserId == null) return;
+        _liked = !_liked;
+        StateHasChanged();
+        var result = await SongService.ToggleLikeAsync(Player.CurrentSong.Id, CurrentUser.UserId.Value);
+        if (!result.IsSuccess)
+        {
+            _liked = !_liked; // revert on failure
+            Toast.Show(ToastType.Error, result.Error ?? "Lỗi");
+        }
+        StateHasChanged();
+    }
+
+    private async Task Share()
+    {
+        if (Player.CurrentSong == null) return;
+        await JSRuntime.InvokeVoidAsync("copyToClipboard",
+            $"/songs/{Player.CurrentSong.Id}");
+        Toast.Show(ToastType.Success, "Đã copy link!");
+    }
+
+    private void ShowOverlay() => _overlayOpen = true;
+
+    private static string FormatDuration(int s)
+    {
+        if (s <= 0) return "0:00";
+        var ts = TimeSpan.FromSeconds(s);
+        return ts.Hours > 0
+            ? $"{(int)ts.TotalHours}:{ts.Minutes:D2}:{ts.Seconds:D2}"
+            : $"{(int)ts.TotalMinutes}:{ts.Seconds:D2}";
+    }
+
+    public void Dispose()
+    {
+        Player.OnChange -= OnPlayerChange;
+        _dotNetRef?.Dispose();
+    }
+}
+
+public interface IPlayerBar { }

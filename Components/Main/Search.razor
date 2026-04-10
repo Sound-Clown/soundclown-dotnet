@@ -1,0 +1,94 @@
+@page "/search"
+@inject ISongService SongService
+@inject IPlayerService PlayerService
+@inject ICurrentUserService CurrentUser
+@inject IToastService Toast
+
+<div class="page-content">
+    <!-- Search input -->
+    <div class="relative max-w-md mx-auto mb-8">
+        <svg class="absolute left-4 top-1/2 -translate-y-1/2" width="16" height="16" fill="none"
+             stroke="var(--muted-foreground)" stroke-width="2" viewBox="0 0 24 24">
+            <circle cx="11" cy="11" r="8"/>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+        <input class="input pl-12" placeholder="Tìm bài hát, nghệ sĩ..."
+               @bind="_query" @bind:event="oninput" />
+    </div>
+
+    @if (_loading)
+    {
+        <LoadingSpinner />
+    }
+    else if (_results != null)
+    {
+        if (_results.IsSuccess && _results.Data!.Count > 0)
+        {
+            <div class="space-y-1">
+                <p class="text-xs mb-3" style="color: var(--muted-foreground-3);">@_results.Data.Count kết quả</p>
+                @foreach (var item in _results.Data.Select((s, i) => (Song: s, Index: i)))
+                {
+                    <SongRow Song="item.Song" Index="item.Index" ShowAlbum="true"
+                             OnClick="HandlePlay"
+                             OnToggleLike="() => ToggleLike(item.Song)" />
+                }
+            </div>
+        }
+        else if (_query.Length >= 2)
+        {
+            <EmptyState Title="Không tìm thấy" Description='$"Không có kết quả cho \"{_query}\""' />
+        }
+    }
+</div>
+
+@code {
+    private string _query = "";
+    private ServiceResult<List<SongDto>>? _results;
+    private bool _loading;
+    private System.Timers.Timer? _debounce;
+
+    protected override void OnInitialized()
+    {
+        _debounce = new System.Timers.Timer(300);
+        _debounce.Elapsed += async (_, _) =>
+        {
+            if (_query.Length < 2) { _results = null; await InvokeAsync(StateHasChanged); return; }
+            _loading = true;
+            await InvokeAsync(StateHasChanged);
+            _results = await SongService.SearchSongsAsync(_query, CurrentUser.UserId ?? 0);
+            _loading = false;
+            await InvokeAsync(StateHasChanged);
+        };
+        _debounce.AutoReset = false;
+    }
+
+    private void OnInput(ChangeEventArgs e)
+    {
+        _query = e.Value?.ToString() ?? "";
+        _debounce?.Stop();
+        _debounce?.Start();
+    }
+
+    private void HandlePlay(int index)
+    {
+        if (_results?.IsSuccess != true) return;
+        var songs = _results.Data!.Select(s => new PlayerSong(
+            s.Id, s.Title, s.CoverImage, s.AudioFile,
+            s.ArtistUsername, s.PlayCount, s.LikeCount, s.IsLiked)).ToList();
+        PlayerService.SetQueue(songs, index, "search");
+    }
+
+    private async Task ToggleLike(SongDto song)
+    {
+        if (!CurrentUser.UserId.HasValue) return;
+        var result = await SongService.ToggleLikeAsync(song.Id, CurrentUser.UserId.Value);
+        if (result.IsSuccess)
+        {
+            StateHasChanged();
+        }
+        else
+        {
+            Toast.Show(ToastType.Error, result.Error ?? "Lỗi");
+        }
+    }
+}

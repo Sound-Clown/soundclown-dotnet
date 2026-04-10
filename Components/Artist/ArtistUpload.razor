@@ -1,0 +1,303 @@
+@page "/artist/upload"
+@attribute [Authorize(Roles = "Artist")]
+@inject IUploadService UploadService
+@inject ISongService SongService
+@inject IAlbumService AlbumService
+@inject ICurrentUserService CurrentUser
+@inject NavigationManager Nav
+@inject IToastService Toast
+
+<div class="page-content max-w-lg mx-auto">
+    <h1 class="text-xl font-medium mb-6">Upload bài hát</h1>
+
+    @if (_done)
+    {
+        <div class="card text-center py-8">
+            <div class="w-14 h-14 rounded-full mx-auto mb-4 flex items-center justify-center" style="background: rgba(245,166,35,0.1);">
+                <svg width="28" height="28" fill="none" stroke="var(--accent)" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                    <polyline points="22 4 12 14.01 9 11.01"/>
+                </svg>
+            </div>
+            <h3 class="text-lg font-medium mb-2">Upload thành công!</h3>
+            <p class="text-sm mb-6" style="color: var(--muted-foreground);">Bài hát đang chờ admin duyệt.</p>
+            <div class="flex justify-center gap-3">
+                <a href="/artist/songs" class="btn-primary">Xem bài của tôi</a>
+                <button class="btn-ghost" @onclick="Reset">Upload thêm</button>
+            </div>
+        </div>
+    }
+    else
+    {
+        <form @onsubmit="HandleSubmit">
+            <!-- Title -->
+            <div class="form-group mb-5">
+                <label class="label">Tên bài hát</label>
+                <input class="input" @bind="_title" placeholder="VD: Đêm không ngủ" />
+                @if (!string.IsNullOrEmpty(_titleError))
+                {
+                    <span class="form-error">@_titleError</span>
+                }
+            </div>
+
+            <!-- Album -->
+            <div class="form-group mb-5">
+                <label class="label">Album (tùy chọn)</label>
+                <select class="input" @bind="_albumId">
+                    <option value="">— Single (không album) —</option>
+                    @foreach (var a in _albums)
+                    {
+                        <option value="@a.Id">@a.Name</option>
+                    }
+                </select>
+            </div>
+
+            <!-- Audio upload -->
+            <div class="form-group mb-5">
+                <label class="label">File âm thanh</label>
+                <div class="upload-zone @(IsDraggingAudio ? "drag-over" : "")"
+                     @ondragover:preventDefault @ondragover="() => IsDraggingAudio = true"
+                     @ondragleave="() => IsDraggingAudio = false"
+                     @ondrop.prevent="HandleAudioDrop">
+                    @if (_audioFile != null)
+                    {
+                        <div class="flex items-center gap-3">
+                            <svg width="28" height="28" fill="none" stroke="var(--accent)" stroke-width="1.5" viewBox="0 0 24 24">
+                                <path d="M9 18V5l12-2v13M9 18c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2zm12 0c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2z"/>
+                            </svg>
+                            <div>
+                                <p class="text-sm font-medium">@_audioFile.Name</p>
+                                <p class="text-xs" style="color: var(--muted-foreground-3);">@FormatSize(_audioFile.Size)</p>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center py-6">
+                            <svg width="28" height="28" fill="none" stroke="var(--muted-foreground-3)" stroke-width="1.5" viewBox="0 0 24 24" class="mx-auto mb-2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                <polyline points="17 8 12 3 7 8"/>
+                                <line x1="12" y1="3" x2="12" y2="15"/>
+                            </svg>
+                            <p class="text-sm" style="color: var(--muted-foreground);">Kéo thả hoặc nhấn để chọn file MP3</p>
+                            <p class="text-xs mt-1" style="color: var(--muted-foreground-3);">Tối đa 10MB</p>
+                        </div>
+                    }
+                </div>
+                <InputFile @ref="_audioInput" OnChange="HandleAudioSelect" accept=".mp3,audio/mpeg" style="display:none;" />
+                @if (!string.IsNullOrEmpty(_audioError))
+                {
+                    <span class="form-error">@_audioError</span>
+                }
+            </div>
+
+            <!-- Cover image upload -->
+            <div class="form-group mb-6">
+                <label class="label">Ảnh bìa (tùy chọn)</label>
+                <div class="flex gap-4 items-start">
+                    @if (_coverPreview != null)
+                    {
+                        <div class="relative flex-shrink-0">
+                            <img src="@_coverPreview" class="w-24 h-24 rounded-xl object-cover" />
+                            <button type="button" class="absolute -top-2 -right-2 w-6 h-6 rounded-full flex items-center justify-center"
+                                    style="background: var(--surface-2);"
+                                    @onclick="ClearCover">
+                                <svg width="12" height="12" fill="none" stroke="var(--foreground)" stroke-width="2" viewBox="0 0 24 24">
+                                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                                </svg>
+                            </button>
+                        </div>
+                    }
+                    <div class="upload-zone-sm @(IsDraggingCover ? "drag-over" : "") flex-1"
+                         @ondragover:preventDefault @ondragover="() => IsDraggingCover = true"
+                         @ondragleave="() => IsDraggingCover = false"
+                         @ondrop.prevent="HandleCoverDrop">
+                        @if (_coverPreview != null)
+                        {
+                            <p class="text-xs text-center" style="color: var(--muted-foreground-2);">Đổi ảnh</p>
+                        }
+                        else
+                        {
+                            <div class="text-center py-4">
+                                <svg width="24" height="24" fill="none" stroke="var(--muted-foreground-3)" stroke-width="1.5" viewBox="0 0 24 24" class="mx-auto mb-1">
+                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                                    <circle cx="8.5" cy="8.5" r="1.5"/>
+                                    <polyline points="21 15 16 10 5 21"/>
+                                </svg>
+                                <p class="text-xs" style="color: var(--muted-foreground-3);">Ảnh JPG/PNG/WebP, tối đa 2MB</p>
+                            </div>
+                        }
+                    </div>
+                    <InputFile @ref="_coverInput" OnChange="HandleCoverSelect" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" style="display:none;" />
+                </div>
+            </div>
+
+            @if (!string.IsNullOrEmpty(_error))
+            {
+                <div class="mb-4 p-3 rounded-lg text-sm" style="background: rgba(239,68,68,0.1); color: #f87171;">
+                    @_error
+                </div>
+            }
+
+            <button type="submit" class="btn-primary w-full" disabled="@_loading">
+                @if (_loading) {
+                    <span class="w-4 h-4 border-2 border-t-black rounded-full animate-spin"></span>
+                }
+                Upload bài hát
+            </button>
+        </form>
+    }
+</div>
+
+<!-- Album list loader -->
+@if (_albumsLoading)
+{
+    <LoadingSpinner />
+}
+
+<style>
+.upload-zone {
+    border: 2px dashed rgba(255,255,255,0.1);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+    background: var(--surface);
+}
+.upload-zone:hover, .upload-zone.drag-over {
+    border-color: var(--accent);
+    background: rgba(245,166,35,0.05);
+}
+.upload-zone-sm {
+    border: 2px dashed rgba(255,255,255,0.1);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+    background: var(--surface);
+    height: 96px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.upload-zone-sm:hover, .upload-zone-sm.drag-over {
+    border-color: var(--accent);
+    background: rgba(245,166,35,0.05);
+}
+</style>
+
+@code {
+    private string _title = "";
+    private string _titleError = "";
+    private string _error = "";
+    private int? _albumId;
+    private IBrowserFile? _audioFile;
+    private IBrowserFile? _coverFile;
+    private string? _coverPreview;
+    private string? _audioError;
+    private string? _audioUrl;
+    private string? _coverUrl;
+    private bool _loading;
+    private bool _done;
+    private bool IsDraggingAudio;
+    private bool IsDraggingCover;
+    private bool _albumsLoading = true;
+    private List<AlbumListDto> _albums = new();
+    private InputFile? _audioInput;
+    private InputFile? _coverInput;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var result = await AlbumService.GetArtistAlbumsAsync(CurrentUser.UserId!.Value);
+        _albumsLoading = false;
+        if (result.IsSuccess) _albums = result.Data!;
+    }
+
+    private async Task HandleAudioSelect(InputFileChangeEventArgs e)
+    {
+        _audioFile = e.File;
+        _audioError = null;
+        if (_audioFile.ContentType != "audio/mpeg" && _audioFile.ContentType != "audio/mp3")
+        {
+            _audioError = "Chỉ chấp nhận file MP3."; _audioFile = null; return;
+        }
+        if (_audioFile.Size > 10 * 1024 * 1024)
+        {
+            _audioError = "File tối đa 10MB."; _audioFile = null; return;
+        }
+        _loading = true;
+        await using var stream = _audioFile.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024);
+        using var ms = new MemoryStream();
+        await stream.CopyToAsync(ms);
+        ms.Position = 0;
+        var upload = await UploadService.UploadAudioAsync(ms, _audioFile.Name, _audioFile.ContentType, _audioFile.Size);
+        _loading = false;
+        if (upload.IsSuccess) _audioUrl = upload.Data!.Url;
+        else _audioError = upload.Error;
+    }
+
+    private void HandleAudioDrop(DragEventArgs e)
+    {
+        IsDraggingAudio = false;
+        // Handle drop — simplified
+    }
+
+    private async Task HandleCoverSelect(InputFileChangeEventArgs e)
+    {
+        _coverFile = e.File;
+        await using var stream = _coverFile.OpenReadStream(maxAllowedSize: 2 * 1024 * 1024);
+        using var ms = new MemoryStream();
+        await stream.CopyToAsync(ms);
+        ms.Position = 0;
+        var upload = await UploadService.UploadImageAsync(ms, _coverFile.Name, _coverFile.ContentType, _coverFile.Size);
+        if (upload.IsSuccess)
+        {
+            _coverUrl = upload.Data!.Url;
+            _coverPreview = upload.Data.Url;
+        }
+    }
+
+    private void HandleCoverDrop(DragEventArgs e)
+    {
+        IsDraggingCover = false;
+    }
+
+    private void ClearCover()
+    {
+        _coverFile = null;
+        _coverPreview = null;
+        _coverUrl = null;
+    }
+
+    private async Task HandleSubmit()
+    {
+        _error = "";
+        _titleError = "";
+        if (string.IsNullOrWhiteSpace(_title)) { _titleError = "Vui lòng nhập tên bài hát."; return; }
+        if (string.IsNullOrEmpty(_audioUrl)) { _audioError = "Vui lòng upload file âm thanh."; return; }
+
+        _loading = true;
+        var dto = new CreateSongDto(_title, _audioUrl!, _coverUrl, _albumId);
+        var result = await SongService.CreateAsync(dto, CurrentUser.UserId!.Value);
+        _loading = false;
+
+        if (result.IsSuccess)
+        {
+            _done = true;
+            Toast.Show(ToastType.Success, "Upload thành công! Bài hát đang chờ duyệt.");
+        }
+        else
+        {
+            _error = result.Error ?? "Có lỗi xảy ra.";
+        }
+    }
+
+    private void Reset() { _done = false; _title = ""; _audioFile = null; _coverFile = null; _coverPreview = null; _audioUrl = null; _coverUrl = null; }
+
+    private static string FormatSize(long bytes)
+    {
+        if (bytes < 1024) return $"{bytes}B";
+        if (bytes < 1024 * 1024) return $"{bytes / 1024.0:F1}KB";
+        return $"{bytes / 1024.0 / 1024.0:F1}MB";
+    }
+}

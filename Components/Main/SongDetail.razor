@@ -1,0 +1,141 @@
+@page "/songs/{Id:int}"
+@inject ISongService SongService
+@inject IPlayerService PlayerService
+@inject ICurrentUserService CurrentUser
+@inject IToastService Toast
+@inject IJSRuntime JSRuntime
+@inject IConfiguration Config
+
+<div class="page-content">
+    @if (_loading)
+    {
+        <LoadingSpinner />
+    }
+    else if (_song != null)
+    {
+        <div class="max-w-2xl mx-auto">
+            <!-- Back -->
+            <button class="flex items-center gap-2 mb-6 text-sm hover:underline"
+                    style="color: var(--muted-foreground);"
+                    @onclick='() => _nav.NavigateTo("/")'>
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <polyline points="15 18 9 12 15 6"/>
+                </svg>
+                Quay lại
+            </button>
+
+            <!-- Cover + Info -->
+            <div class="flex gap-6 items-start mb-8">
+                @if (!string.IsNullOrEmpty(_song.CoverImage))
+                {
+                    <img src="@_song.CoverImage" alt="@_song.Title"
+                         class="w-40 h-40 rounded-xl object-cover flex-shrink-0" />
+                }
+                else
+                {
+                    <div class="w-40 h-40 rounded-xl bg-[#252528] flex items-center justify-center flex-shrink-0">
+                        <svg width="40" height="40" fill="none" stroke="var(--muted-foreground-3)" stroke-width="1.5" viewBox="0 0 24 24">
+                            <path d="M9 18V5l12-2v13M9 18c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2zm12 0c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2z"/>
+                        </svg>
+                    </div>
+                }
+
+                <div class="flex-1 min-w-0">
+                    <p class="text-sm font-medium mb-1" style="color: var(--muted-foreground);">Bài hát</p>
+                    <h1 class="text-xl font-semibold mb-2 truncate">@_song.Title</h1>
+                    <p class="text-base" style="color: var(--muted-foreground);">@_song.ArtistUsername</p>
+                    @if (_song.AlbumName != null)
+                    {
+                        <p class="text-sm mt-1" style="color: var(--muted-foreground-2);">
+                            Album: <a href="/albums/@_song.AlbumId" class="hover:underline">@_song.AlbumName</a>
+                        </p>
+                    }
+                    <p class="text-sm mt-2" style="color: var(--muted-foreground-3);">
+                        @_song.PlayCount plays · @_song.LikeCount likes
+                    </p>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="flex gap-3 mb-8">
+                <button class="btn-primary" @onclick="PlaySong">
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
+                        <polygon points="5,3 19,12 5,21"/>
+                    </svg>
+                    Phát
+                </button>
+                <button class="btn-ghost" @onclick="ToggleLike">
+                    <svg width="18" height="18" fill="@(_song.IsLiked ? "var(--accent)" : "none")"
+                         stroke="@(_song.IsLiked ? "var(--accent)" : "currentColor")" stroke-width="2" viewBox="0 0 24 24">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                    </svg>
+                    @(_song.IsLiked ? "Đã thích" : "Thích")
+                </button>
+                <button class="btn-ghost" @onclick="Share">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <circle cx="18" cy="5" r="3"/>
+                        <circle cx="6" cy="12" r="3"/>
+                        <circle cx="18" cy="19" r="3"/>
+                        <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+                        <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+                    </svg>
+                    Chia sẻ
+                </button>
+            </div>
+
+            @if (_song.Status == Enums.SongStatus.Rejected && !string.IsNullOrEmpty(_song.RejectReason))
+            {
+                <div class="p-4 rounded-xl text-sm" style="background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.2);">
+                    <p style="color: #f87171;">Lý do từ chối: @_song.RejectReason</p>
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <EmptyState Title="Không tìm thấy bài hát" />
+    }
+</div>
+
+@code {
+    [Parameter] public int Id { get; set; }
+    [Inject] private NavigationManager _nav { get; set; } = null!;
+
+    private SongDto? _song;
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var result = await SongService.GetByIdAsync(Id, CurrentUser.UserId ?? 0);
+        _loading = false;
+        if (result.IsSuccess) _song = result.Data;
+        else _nav.NavigateTo("/");
+    }
+
+    private void PlaySong()
+    {
+        if (_song == null) return;
+        var songs = new List<PlayerSong> { new(
+            _song.Id, _song.Title, _song.CoverImage, _song.AudioFile,
+            _song.ArtistUsername, _song.PlayCount, _song.LikeCount, _song.IsLiked) };
+        PlayerService.SetQueue(songs, 0, "detail");
+    }
+
+    private async Task ToggleLike()
+    {
+        if (_song == null || !CurrentUser.UserId.HasValue) return;
+        var result = await SongService.ToggleLikeAsync(_song.Id, CurrentUser.UserId.Value);
+        if (result.IsSuccess)
+        {
+            StateHasChanged();
+        }
+    }
+
+    private async Task Share()
+    {
+        var baseUrl = Config["App:BaseUrl"] ?? "";
+        var url = $"{baseUrl.TrimEnd('/')}/songs/{Id}";
+        await JSRuntime.InvokeVoidAsync("copyToClipboard", url);
+        Toast.Show(ToastType.Success, "Đã copy link!");
+    }
+}

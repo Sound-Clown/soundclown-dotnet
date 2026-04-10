@@ -1,0 +1,28 @@
+@using Microsoft.AspNetCore.Components
+@using Microsoft.AspNetCore.Components.Routing
+@using Microsoft.AspNetCore.Components.Authorization
+@using MusicApp.Components.Shared
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <base href="/" />
+    <link rel="icon" type="image/png" href="favicon.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="css/app.css" />
+    <HeadOutlet />
+</head>
+<body>
+    <CascadingAuthenticationState>
+        <Routes />
+    </CascadingAuthenticationState>
+    <div id="toast-container" class="toast-container"></div>
+    <script src="_framework/blazor.web.js"></script>
+    <script src="js/helpers.js"></script>
+    <script src="js/player.js"></script>
+</body>
+</html>
