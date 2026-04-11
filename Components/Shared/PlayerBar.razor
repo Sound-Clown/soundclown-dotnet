@@ -246,6 +246,7 @@
     private string _progressPercent => _duration > 0 ? $"{(_current * 100.0 / _duration):F1}" : "0";
     private DotNetObjectReference<PlayerBar>? _dotNetRef;
     private bool _playCountScheduled;
+    private int _playCountSongId;
 
     protected override void OnInitialized()
     {
@@ -260,6 +261,7 @@
         StateHasChanged();
         if (Player.IsPlaying && Player.CurrentSong != null)
         {
+            _playCountSongId = Player.CurrentSong.Id;
             await JSRuntime.InvokeVoidAsync("musicPlayer.play", Player.CurrentSong.AudioUrl);
             await JSRuntime.InvokeVoidAsync("musicPlayer.setOnEnded", _dotNetRef);
             await JSRuntime.InvokeVoidAsync("musicPlayer.setOnTimeUpdate", _dotNetRef);
@@ -274,7 +276,7 @@
 
     private async Task SchedulePlayCount()
     {
-        await JSRuntime.InvokeVoidAsync("schedulePlayCount", _dotNetRef);
+        await JSRuntime.InvokeVoidAsync("schedulePlayCount", _dotNetRef, _playCountSongId);
     }
 
     [JSInvokable]
@@ -300,12 +302,12 @@
     }
 
     [JSInvokable]
-    public async Task OnPlayThreshold()
+    public async Task OnPlayThreshold(int songId)
     {
-        if (Player.CurrentSong != null && !_playCountScheduled)
+        if (songId == _playCountSongId && !_playCountScheduled)
         {
             _playCountScheduled = true;
-            await SongService.IncrementPlayCountAsync(Player.CurrentSong.Id);
+            await SongService.IncrementPlayCountAsync(songId);
         }
     }
 

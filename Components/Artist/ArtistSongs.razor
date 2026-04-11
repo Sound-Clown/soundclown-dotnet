@@ -1,20 +1,22 @@
 @page "/artist/songs"
+@rendermode InteractiveServer
 @attribute [Authorize(Roles = "Artist")]
 @inject ISongService SongService
 @inject IAlbumService AlbumService
 @inject ICurrentUserService CurrentUser
 @inject IToastService Toast
 @inject IUploadService UploadService
+@inject IJSRuntime JSRuntime
 
 <div class="page-content">
     <div class="flex items-center justify-between mb-6">
         <h1 class="text-xl font-medium">Bài của tôi</h1>
-        <a href="/artist/upload" class="btn-primary">
-            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <button class="btn-primary" @onclick="OpenUpload">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                 <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
             </svg>
             Upload
-        </a>
+        </button>
     </div>
 
     @if (_loading)
@@ -23,12 +25,10 @@
     }
     else if (_songs != null && _songs.Count > 0)
     {
-        <!-- Table -->
         <div class="space-y-2">
             @foreach (var song in _songs)
             {
                 <div class="card flex items-center gap-4 py-3">
-                    <!-- Cover -->
                     <div class="w-12 h-12 rounded-lg overflow-hidden bg-[#252528] flex-shrink-0">
                         @if (!string.IsNullOrEmpty(song.CoverImage))
                         {
@@ -43,19 +43,13 @@
                             </div>
                         }
                     </div>
-
-                    <!-- Info -->
                     <div class="flex-1 min-w-0">
                         <p class="text-sm font-medium truncate">@song.Title</p>
                         <p class="text-xs" style="color: var(--muted-foreground-2);">
                             @song.PlayCount plays · @song.LikeCount likes
                         </p>
                     </div>
-
-                    <!-- Status -->
                     <SongStatusBadge Status="song.Status" RejectReason="song.RejectReason" />
-
-                    <!-- Actions -->
                     <div class="flex gap-2">
                         <button class="btn-ghost p-2" @onclick="() => OpenEdit(song)">
                             <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -81,7 +75,138 @@
     }
 </div>
 
-<!-- Edit Modal -->
+<!-- ── Upload Dialog ──────────────────────────────────────────── -->
+@if (_uploadOpen)
+{
+    <div class="modal-overlay" @onclick="CloseUpload">
+        <div class="modal" @onclick:stopPropagation style="max-width: 520px;">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-medium">Upload bài hát</h3>
+                <button class="btn-ghost p-1" @onclick="CloseUpload">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="form-group mb-4">
+                <label class="label">Tên bài hát</label>
+                <input class="input" @bind="_upTitle" placeholder="VD: Đêm không ngủ" />
+                @if (!string.IsNullOrEmpty(_upTitleError))
+                {
+                    <span class="form-error">@_upTitleError</span>
+                }
+            </div>
+
+            <div class="form-group mb-4">
+                <label class="label">Album (tùy chọn)</label>
+                <select class="input" @bind="_upAlbumId">
+                    <option value="">— Single —</option>
+                    @foreach (var a in _albums)
+                    {
+                        <option value="@a.Id">@a.Name</option>
+                    }
+                </select>
+            </div>
+
+            <!-- Audio -->
+            <div class="form-group mb-4">
+                <label class="label">File âm thanh</label>
+                <div class="upload-zone @(IsDraggingAudio ? "drag-over" : "")"
+                     @ondragover:preventDefault @ondragover="() => IsDraggingAudio = true"
+                     @ondragleave="() => IsDraggingAudio = false"
+                     @ondrop.prevent="HandleAudioDrop"
+                     @onclick="TriggerAudioClick">
+                    <InputFile id="audio-upload-input" OnChange="HandleAudioSelect" accept=".mp3,audio/mpeg" class="sr-only" />
+                    @if (!string.IsNullOrEmpty(_upAudioFileName))
+                    {
+                        <div class="flex items-center gap-3">
+                            <svg width="28" height="28" fill="none" stroke="var(--accent)" stroke-width="1.5" viewBox="0 0 24 24">
+                                <path d="M9 18V5l12-2v13M9 18c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2zm12 0c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2z"/>
+                            </svg>
+                            <div>
+                                <p class="text-sm font-medium">@_upAudioFileName</p>
+                                <p class="text-xs" style="color: var(--muted-foreground-3);">@FormatSize(_upAudioFileSize)</p>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center py-4">
+                            <svg width="28" height="28" fill="none" stroke="var(--muted-foreground-3)" stroke-width="1.5" viewBox="0 0 24 24" class="mx-auto mb-2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                <polyline points="17 8 12 3 7 8"/>
+                                <line x1="12" y1="3" x2="12" y2="15"/>
+                            </svg>
+                            <p class="text-sm" style="color: var(--muted-foreground);">Kéo thả hoặc nhấn để chọn file MP3</p>
+                            <p class="text-xs mt-1" style="color: var(--muted-foreground-3);">Tối đa 10MB</p>
+                        </div>
+                    }
+                </div>
+                @if (!string.IsNullOrEmpty(_upAudioError))
+                {
+                    <span class="form-error">@_upAudioError</span>
+                }
+            </div>
+
+            <!-- Cover -->
+            <div class="form-group mb-6">
+                <label class="label">Ảnh bìa (tùy chọn)</label>
+                <div class="flex gap-4 items-start">
+                    @if (_upCoverPreview != null)
+                    {
+                        <div class="relative flex-shrink-0">
+                            <img src="@_upCoverPreview" class="w-20 h-20 rounded-xl object-cover" />
+                            <button type="button" class="absolute -top-2 -right-2 w-6 h-6 rounded-full flex items-center justify-center"
+                                    style="background: var(--surface-2);"
+                                    @onclick="ClearUpCover">
+                                <svg width="10" height="10" fill="none" stroke="var(--foreground)" stroke-width="2" viewBox="0 0 24 24">
+                                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                                </svg>
+                            </button>
+                        </div>
+                    }
+                    <label class="upload-zone-sm @(IsDraggingCover ? "drag-over" : "") flex-1 cursor-pointer"
+                           @ondragover:preventDefault @ondragover="() => IsDraggingCover = true"
+                           @ondragleave="() => IsDraggingCover = false"
+                           @ondrop.prevent="HandleCoverDrop">
+                        <InputFile id="cover-upload-input" OnChange="HandleUpCoverSelect" accept=".jpg,.jpeg,.png,.webp" class="sr-only" />
+                        @if (_upCoverPreview != null)
+                        {
+                            <p class="text-xs text-center" style="color: var(--muted-foreground-2);">Đổi ảnh</p>
+                        }
+                        else
+                        {
+                            <div class="text-center py-3">
+                                <svg width="22" height="22" fill="none" stroke="var(--muted-foreground-3)" stroke-width="1.5" viewBox="0 0 24 24" class="mx-auto mb-1">
+                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                                    <circle cx="8.5" cy="8.5" r="1.5"/>
+                                    <polyline points="21 15 16 10 5 21"/>
+                                </svg>
+                                <p class="text-xs" style="color: var(--muted-foreground-3);">JPG/PNG/WebP, tối đa 2MB</p>
+                            </div>
+                        }
+                    </label>
+                </div>
+            </div>
+
+            @if (!string.IsNullOrEmpty(_upError))
+            {
+                <div class="mb-4 p-3 rounded-lg text-sm" style="background: rgba(239,68,68,0.1); color: #f87171;">@_upError</div>
+            }
+
+            <div class="flex justify-end gap-3">
+                <button class="btn-ghost" @onclick="CloseUpload">Hủy</button>
+                <button class="btn-primary" @onclick="DoUpload" disabled="@_upLoading">
+                    @if (_upLoading) { <span class="w-4 h-4 border-2 border-t-black rounded-full animate-spin"></span> }
+                    Upload
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- ── Edit Modal ─────────────────────────────────────────────── -->
 @if (_editSong != null)
 {
     <div class="modal-overlay" @onclick="() => _editSong = null">
@@ -111,7 +236,42 @@
             </div>
             <div class="form-group mb-6">
                 <label class="label">Ảnh bìa (tùy chọn)</label>
-                <InputFile OnChange="HandleEditCover" accept=".jpg,.jpeg,.png,.webp" />
+                <div class="flex gap-4 items-start">
+                    @if (_editCoverUrl != null)
+                    {
+                        <div class="relative flex-shrink-0">
+                            <img src="@_editCoverUrl" class="w-20 h-20 rounded-xl object-cover" />
+                            <button type="button" class="absolute -top-2 -right-2 w-6 h-6 rounded-full flex items-center justify-center"
+                                    style="background: var(--surface-2);"
+                                    @onclick="ClearEditCover">
+                                <svg width="10" height="10" fill="none" stroke="var(--foreground)" stroke-width="2" viewBox="0 0 24 24">
+                                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                                </svg>
+                            </button>
+                        </div>
+                    }
+                    <label class="upload-zone-sm @(IsDraggingEditCover ? "drag-over" : "") flex-1 cursor-pointer"
+                           @ondragover:preventDefault @ondragover="() => IsDraggingEditCover = true"
+                           @ondragleave="() => IsDraggingEditCover = false"
+                           @ondrop.prevent="HandleEditCoverDrop">
+                        <InputFile id="cover-edit-input" OnChange="HandleEditCover" accept=".jpg,.jpeg,.png,.webp" class="sr-only" />
+                        @if (_editCoverUrl != null)
+                        {
+                            <p class="text-xs text-center" style="color: var(--muted-foreground-2);">Đổi ảnh</p>
+                        }
+                        else
+                        {
+                            <div class="text-center py-3">
+                                <svg width="22" height="22" fill="none" stroke="var(--muted-foreground-3)" stroke-width="1.5" viewBox="0 0 24 24" class="mx-auto mb-1">
+                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                                    <circle cx="8.5" cy="8.5" r="1.5"/>
+                                    <polyline points="21 15 16 10 5 21"/>
+                                </svg>
+                                <p class="text-xs" style="color: var(--muted-foreground-3);">JPG/PNG/WebP, tối đa 2MB</p>
+                            </div>
+                        }
+                    </label>
+                </div>
             </div>
 
             @if (!string.IsNullOrEmpty(_editError))
@@ -143,19 +303,37 @@
     private List<SongDto>? _songs;
     private List<AlbumListDto> _albums = new();
     private bool _loading;
+
+    // Edit
     private SongDto? _editSong;
     private string _editTitle = "";
     private int? _editAlbumId;
     private string? _editCoverUrl;
     private bool _editLoading;
     private string _editError = "";
+    private bool IsDraggingEditCover;
+
+    // Upload dialog
+    private bool _uploadOpen;
+    private string _upTitle = "";
+    private string _upTitleError = "";
+    private int? _upAlbumId;
+    private string? _upAudioUrl;
+    private string _upAudioFileName = "";
+    private long _upAudioFileSize;
+    private string? _upCoverUrl;
+    private string? _upCoverPreview;
+    private string _upAudioError = "";
+    private string _upError = "";
+    private bool _upLoading;
+    private bool IsDraggingAudio;
+    private bool IsDraggingCover;
+
+    // Delete
     private bool _deleteConfirmOpen;
     private SongDto? _deleteTarget;
 
-    protected override async Task OnInitializedAsync()
-    {
-        await Load();
-    }
+    protected override async Task OnInitializedAsync() => await Load();
 
     private async Task Load()
     {
@@ -167,6 +345,91 @@
         if (albumResult.IsSuccess) _albums = albumResult.Data!;
     }
 
+    // ── Upload ──────────────────────────────────────────────
+    private void OpenUpload() { ResetUp(); _uploadOpen = true; }
+    private void CloseUpload() { _uploadOpen = false; }
+    private void ResetUp() { _upTitle = ""; _upTitleError = ""; _upAlbumId = null; _upAudioUrl = null; _upAudioFileName = ""; _upAudioFileSize = 0; _upCoverUrl = null; _upCoverPreview = null; _upAudioError = ""; _upError = ""; _upLoading = false; }
+
+    private async Task HandleAudioSelect(InputFileChangeEventArgs e)
+    {
+        _upAudioError = "";
+        var file = e.File;
+        if (file.ContentType != "audio/mpeg" && file.ContentType != "audio/mp3")
+        { _upAudioError = "Chỉ chấp nhận file MP3."; return; }
+        if (file.Size > 10 * 1024 * 1024)
+        { _upAudioError = "File tối đa 10MB."; return; }
+        _upLoading = true;
+        await using var stream = file.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024);
+        using var ms = new MemoryStream();
+        await stream.CopyToAsync(ms);
+        ms.Position = 0;
+        var upload = await UploadService.UploadAudioAsync(ms, file.Name, file.ContentType, file.Size);
+        _upLoading = false;
+        if (upload.IsSuccess)
+        { _upAudioUrl = upload.Data!.Url; _upAudioFileName = file.Name; _upAudioFileSize = file.Size; }
+        else _upAudioError = upload.Error ?? "Upload thất bại.";
+    }
+
+    private async Task HandleAudioDrop(DragEventArgs e)
+    {
+        IsDraggingAudio = false;
+        if (e.DataTransfer.Files.Count() == 0) return;
+        var name = e.DataTransfer.Files[0];
+        var base64 = await JSRuntime.InvokeAsync<string>("readFileAsBase64", "audio-upload-input");
+        if (string.IsNullOrEmpty(base64)) return;
+        var bytes = Convert.FromBase64String(base64);
+        _upLoading = true;
+        using var ms2 = new MemoryStream(bytes);
+        var upload = await UploadService.UploadAudioAsync(ms2, name, "audio/mpeg", bytes.Length);
+        _upLoading = false;
+        if (upload.IsSuccess)
+        { _upAudioUrl = upload.Data!.Url; _upAudioFileName = name; _upAudioFileSize = bytes.Length; }
+        else _upAudioError = upload.Error ?? "Upload thất bại.";
+    }
+
+    private void TriggerAudioClick() => JSRuntime.InvokeVoidAsync("triggerInputFile", "audio-upload-input");
+
+    private async Task HandleUpCoverSelect(InputFileChangeEventArgs e) => await ProcessUpCover(e.File);
+
+    private async Task ProcessUpCover(IBrowserFile file)
+    {
+        await using var stream = file.OpenReadStream(maxAllowedSize: 2 * 1024 * 1024);
+        using var ms = new MemoryStream();
+        await stream.CopyToAsync(ms);
+        ms.Position = 0;
+        var upload = await UploadService.UploadImageAsync(ms, file.Name, file.ContentType, file.Size);
+        if (upload.IsSuccess)
+        { _upCoverUrl = upload.Data!.Url; _upCoverPreview = upload.Data.Url; }
+    }
+
+    private async Task HandleCoverDrop(DragEventArgs e)
+    {
+        IsDraggingCover = false;
+        if (e.DataTransfer.Files.Count() == 0) return;
+        await JSRuntime.InvokeVoidAsync("triggerInputFile", "cover-upload-input");
+    }
+
+    private void ClearUpCover() { _upCoverUrl = null; _upCoverPreview = null; }
+
+    private async Task DoUpload()
+    {
+        _upTitleError = ""; _upError = "";
+        if (string.IsNullOrWhiteSpace(_upTitle)) { _upTitleError = "Vui lòng nhập tên bài hát."; return; }
+        if (string.IsNullOrEmpty(_upAudioUrl)) { _upAudioError = "Vui lòng upload file âm thanh."; return; }
+        _upLoading = true;
+        var dto = new CreateSongDto(_upTitle, _upAudioUrl!, _upCoverUrl, _upAlbumId);
+        var result = await SongService.CreateAsync(dto, CurrentUser.UserId!.Value);
+        _upLoading = false;
+        if (result.IsSuccess)
+        {
+            _uploadOpen = false;
+            await Load();
+            Toast.Show(ToastType.Success, "Upload thành công! Bài hát đang chờ duyệt.");
+        }
+        else { _upError = result.Error ?? "Có lỗi xảy ra."; }
+    }
+
+    // ── Edit ────────────────────────────────────────────────
     private void OpenEdit(SongDto song)
     {
         _editSong = song;
@@ -179,57 +442,60 @@
     private async Task SaveEdit()
     {
         if (_editSong == null) return;
-        _editLoading = true;
-        _editError = "";
+        _editLoading = true; _editError = "";
         var dto = new UpdateSongDto(_editTitle, _editCoverUrl, _editAlbumId);
         var result = await SongService.UpdateAsync(_editSong.Id, dto, CurrentUser.UserId!.Value);
         _editLoading = false;
         if (result.IsSuccess)
         {
-            _editSong = null;
-            await Load();
+            _editSong = null; await Load();
             Toast.Show(ToastType.Success, "Cập nhật thành công!");
         }
-        else
-        {
-            _editError = result.Error ?? "Có lỗi xảy ra.";
-        }
+        else { _editError = result.Error ?? "Có lỗi xảy ra."; }
     }
 
-    private async Task HandleEditCover(InputFileChangeEventArgs e)
+    private async Task HandleEditCover(InputFileChangeEventArgs e) => await ProcessEditCover(e.File);
+
+    private async Task ProcessEditCover(IBrowserFile file)
     {
-        var file = e.File;
         await using var stream = file.OpenReadStream(maxAllowedSize: 2 * 1024 * 1024);
         using var ms = new MemoryStream();
         await stream.CopyToAsync(ms);
         ms.Position = 0;
         var upload = await UploadService.UploadImageAsync(ms, file.Name, file.ContentType, file.Size);
-        if (upload.IsSuccess)
-        {
-            _editCoverUrl = upload.Data!.Url;
-        }
+        if (upload.IsSuccess) _editCoverUrl = upload.Data!.Url;
     }
 
-    private void ConfirmDelete(SongDto song)
+    private async Task HandleEditCoverDrop(DragEventArgs e)
     {
-        _deleteTarget = song;
-        _deleteConfirmOpen = true;
+        IsDraggingEditCover = false;
+        if (e.DataTransfer.Files.Count() == 0) return;
+        await JSRuntime.InvokeVoidAsync("triggerInputFile", "cover-edit-input");
     }
+
+    private void ClearEditCover() => _editCoverUrl = null;
+
+    // ── Delete ───────────────────────────────────────────────
+    private void ConfirmDelete(SongDto song) { _deleteTarget = song; _deleteConfirmOpen = true; }
 
     private async Task DoDelete()
     {
         if (_deleteTarget == null) return;
-        var result = await SongService.DeleteAsync(_deleteTarget.Id, CurrentUser.UserId!.Value);
         _deleteConfirmOpen = false;
+        var result = await SongService.DeleteAsync(_deleteTarget.Id, CurrentUser.UserId!.Value);
         if (result.IsSuccess)
         {
             _songs?.Remove(_deleteTarget);
             Toast.Show(ToastType.Success, "Đã xóa bài hát.");
             StateHasChanged();
         }
-        else
-        {
-            Toast.Show(ToastType.Error, result.Error ?? "Xóa thất bại.");
-        }
+        else { Toast.Show(ToastType.Error, result.Error ?? "Xóa thất bại."); }
+    }
+
+    private static string FormatSize(long bytes)
+    {
+        if (bytes < 1024) return $"{bytes}B";
+        if (bytes < 1024 * 1024) return $"{bytes / 1024.0:F1}KB";
+        return $"{bytes / 1024.0 / 1024.0:F1}MB";
     }
 }

@@ -1,9 +1,11 @@
 @page "/songs/{Id:int}"
+@rendermode InteractiveServer
 @inject ISongService SongService
 @inject IPlayerService PlayerService
 @inject ICurrentUserService CurrentUser
 @inject IToastService Toast
 @inject IJSRuntime JSRuntime
+@inject NavigationManager Nav
 @inject IConfiguration Config
 
 <div class="page-content">
@@ -17,7 +19,7 @@
             <!-- Back -->
             <button class="flex items-center gap-2 mb-6 text-sm hover:underline"
                     style="color: var(--muted-foreground);"
-                    @onclick='() => _nav.NavigateTo("/")'>
+                    @onclick='() => Nav.NavigateTo("/")'>
                 <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                     <polyline points="15 18 9 12 15 6"/>
                 </svg>
@@ -99,7 +101,6 @@
 
 @code {
     [Parameter] public int Id { get; set; }
-    [Inject] private NavigationManager _nav { get; set; } = null!;
 
     private SongDto? _song;
     private bool _loading = true;
@@ -109,7 +110,7 @@
         var result = await SongService.GetByIdAsync(Id, CurrentUser.UserId ?? 0);
         _loading = false;
         if (result.IsSuccess) _song = result.Data;
-        else _nav.NavigateTo("/");
+        else Nav.NavigateTo("/");
     }
 
     private void PlaySong()

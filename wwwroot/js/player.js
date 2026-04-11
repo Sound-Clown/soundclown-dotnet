@@ -1,4 +1,4 @@
-window.musicPlayer = {
+globalThis.musicPlayer = {
   audio: new Audio(),
   play(url) {
     this.audio.src = url;
@@ -7,7 +7,7 @@ window.musicPlayer = {
   pause() { this.audio.pause(); },
   seek(time) { this.audio.currentTime = time; },
   getCurrentTime() { return this.audio.currentTime; },
-  getDuration() { return isNaN(this.audio.duration) ? 0 : this.audio.duration; },
+  getDuration() { return Number.isNaN(this.audio.duration) ? 0 : this.audio.duration; },
   setVolume(vol) { this.audio.volume = vol; },
   getVolume() { return this.audio.volume; },
   setOnEnded(dotnetRef) {
@@ -22,6 +22,6 @@ window.musicPlayer = {
   }
 };
 
-window.schedulePlayCount = (dotnetRef) => {
-  setTimeout(() => dotnetRef.invokeVoidAsync("OnPlayThreshold"), 30000);
+globalThis.schedulePlayCount = (dotnetRef, songId) => {
+  setTimeout(() => dotnetRef.invokeVoidAsync("OnPlayThreshold", songId), 30000);
 };

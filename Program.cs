@@ -14,9 +14,9 @@ var connString = Environment.GetEnvironmentVariable("DB_CONNECTION_STRING") ?? "
 if (!string.IsNullOrEmpty(connString))
     builder.Configuration["ConnectionStrings:DefaultConnection"] = connString;
 
-var cloudName  = Environment.GetEnvironmentVariable("CLOUDINARY_CLOUD_NAME") ?? "";
-var apiKey     = Environment.GetEnvironmentVariable("CLOUDINARY_API_KEY")     ?? "";
-var apiSecret = Environment.GetEnvironmentVariable("CLOUDINARY_API_SECRET")    ?? "";
+var cloudName = Environment.GetEnvironmentVariable("CLOUDINARY_CLOUD_NAME") ?? "";
+var apiKey = Environment.GetEnvironmentVariable("CLOUDINARY_API_KEY") ?? "";
+var apiSecret = Environment.GetEnvironmentVariable("CLOUDINARY_API_SECRET") ?? "";
 if (!string.IsNullOrEmpty(cloudName))
     builder.Configuration["Cloudinary:CloudName"] = cloudName;
 if (!string.IsNullOrEmpty(apiKey))
@@ -24,8 +24,8 @@ if (!string.IsNullOrEmpty(apiKey))
 if (!string.IsNullOrEmpty(apiSecret))
     builder.Configuration["Cloudinary:ApiSecret"] = apiSecret;
 
-var mailHost     = Environment.GetEnvironmentVariable("MAIL_HOST")     ?? "";
-var mailPort     = Environment.GetEnvironmentVariable("MAIL_PORT")     ?? "";
+var mailHost = Environment.GetEnvironmentVariable("MAIL_HOST") ?? "";
+var mailPort = Environment.GetEnvironmentVariable("MAIL_PORT") ?? "";
 var mailUsername = Environment.GetEnvironmentVariable("MAIL_USERNAME") ?? "";
 var mailPassword = Environment.GetEnvironmentVariable("MAIL_PASSWORD") ?? "";
 if (!string.IsNullOrEmpty(mailHost))
@@ -85,7 +85,6 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
-app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseAntiforgery();
 app.UseAuthentication();

@@ -1,4 +1,5 @@
 @page "/artist/upload"
+@rendermode InteractiveServer
 @attribute [Authorize(Roles = "Artist")]
 @inject IUploadService UploadService
 @inject ISongService SongService
@@ -6,6 +7,7 @@
 @inject ICurrentUserService CurrentUser
 @inject NavigationManager Nav
 @inject IToastService Toast
+@inject IJSRuntime JSRuntime
 
 <div class="page-content max-w-lg mx-auto">
     <h1 class="text-xl font-medium mb-6">Upload bài hát</h1>
@@ -58,16 +60,18 @@
                 <div class="upload-zone @(IsDraggingAudio ? "drag-over" : "")"
                      @ondragover:preventDefault @ondragover="() => IsDraggingAudio = true"
                      @ondragleave="() => IsDraggingAudio = false"
-                     @ondrop.prevent="HandleAudioDrop">
-                    @if (_audioFile != null)
+                     @ondrop.prevent="HandleAudioDrop"
+                     @onclick="TriggerAudioClick">
+                    <InputFile id="audio-file-input" OnChange="HandleAudioSelect" accept=".mp3,audio/mpeg" class="sr-only" />
+                    @if (!string.IsNullOrEmpty(_audioFileName))
                     {
                         <div class="flex items-center gap-3">
                             <svg width="28" height="28" fill="none" stroke="var(--accent)" stroke-width="1.5" viewBox="0 0 24 24">
                                 <path d="M9 18V5l12-2v13M9 18c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2zm12 0c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2z"/>
                             </svg>
                             <div>
-                                <p class="text-sm font-medium">@_audioFile.Name</p>
-                                <p class="text-xs" style="color: var(--muted-foreground-3);">@FormatSize(_audioFile.Size)</p>
+                                <p class="text-sm font-medium">@_audioFileName</p>
+                                <p class="text-xs" style="color: var(--muted-foreground-3);">@FormatSize(_audioFileSize)</p>
                             </div>
                         </div>
                     }
@@ -84,7 +88,6 @@
                         </div>
                     }
                 </div>
-                <InputFile @ref="_audioInput" OnChange="HandleAudioSelect" accept=".mp3,audio/mpeg" style="display:none;" />
                 @if (!string.IsNullOrEmpty(_audioError))
                 {
                     <span class="form-error">@_audioError</span>
@@ -108,10 +111,11 @@
                             </button>
                         </div>
                     }
-                    <div class="upload-zone-sm @(IsDraggingCover ? "drag-over" : "") flex-1"
-                         @ondragover:preventDefault @ondragover="() => IsDraggingCover = true"
-                         @ondragleave="() => IsDraggingCover = false"
-                         @ondrop.prevent="HandleCoverDrop">
+                    <label class="upload-zone-sm @(IsDraggingCover ? "drag-over" : "") flex-1 cursor-pointer"
+                           @ondragover:preventDefault @ondragover="() => IsDraggingCover = true"
+                           @ondragleave="() => IsDraggingCover = false"
+                           @ondrop.prevent="HandleCoverDrop">
+                        <InputFile id="cover-file-input" OnChange="HandleCoverSelect" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" class="sr-only" />
                         @if (_coverPreview != null)
                         {
                             <p class="text-xs text-center" style="color: var(--muted-foreground-2);">Đổi ảnh</p>
@@ -127,8 +131,7 @@
                                 <p class="text-xs" style="color: var(--muted-foreground-3);">Ảnh JPG/PNG/WebP, tối đa 2MB</p>
                             </div>
                         }
-                    </div>
-                    <InputFile @ref="_coverInput" OnChange="HandleCoverSelect" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" style="display:none;" />
+                    </label>
                 </div>
             </div>
 
@@ -192,6 +195,8 @@
     private string _error = "";
     private int? _albumId;
     private IBrowserFile? _audioFile;
+    private string _audioFileName = "";
+    private long _audioFileSize;
     private IBrowserFile? _coverFile;
     private string? _coverPreview;
     private string? _audioError;
@@ -203,8 +208,6 @@
     private bool IsDraggingCover;
     private bool _albumsLoading = true;
     private List<AlbumListDto> _albums = new();
-    private InputFile? _audioInput;
-    private InputFile? _coverInput;
 
     protected override async Task OnInitializedAsync()
     {
@@ -215,41 +218,70 @@
 
     private async Task HandleAudioSelect(InputFileChangeEventArgs e)
     {
-        _audioFile = e.File;
         _audioError = null;
-        if (_audioFile.ContentType != "audio/mpeg" && _audioFile.ContentType != "audio/mp3")
+        var file = e.File;
+        if (file.ContentType != "audio/mpeg" && file.ContentType != "audio/mp3")
         {
-            _audioError = "Chỉ chấp nhận file MP3."; _audioFile = null; return;
+            _audioError = "Chỉ chấp nhận file MP3."; return;
         }
-        if (_audioFile.Size > 10 * 1024 * 1024)
+        if (file.Size > 10 * 1024 * 1024)
         {
-            _audioError = "File tối đa 10MB."; _audioFile = null; return;
+            _audioError = "File tối đa 10MB."; return;
         }
         _loading = true;
-        await using var stream = _audioFile.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024);
+        await using var stream = file.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024);
         using var ms = new MemoryStream();
         await stream.CopyToAsync(ms);
         ms.Position = 0;
-        var upload = await UploadService.UploadAudioAsync(ms, _audioFile.Name, _audioFile.ContentType, _audioFile.Size);
+        var upload = await UploadService.UploadAudioAsync(ms, file.Name, file.ContentType, file.Size);
         _loading = false;
-        if (upload.IsSuccess) _audioUrl = upload.Data!.Url;
+        if (upload.IsSuccess)
+        {
+            _audioUrl = upload.Data!.Url;
+            _audioFileName = file.Name;
+            _audioFileSize = file.Size;
+            _audioFile = file;
+        }
         else _audioError = upload.Error;
     }
 
-    private void HandleAudioDrop(DragEventArgs e)
+    private async Task HandleAudioDrop(DragEventArgs e)
     {
         IsDraggingAudio = false;
-        // Handle drop — simplified
+        if (e.DataTransfer.Files.Count() == 0) return;
+        var name = e.DataTransfer.Files[0];
+        var base64 = await JSRuntime.InvokeAsync<string>("readFileAsBase64", "audio-file-input");
+        if (string.IsNullOrEmpty(base64)) return;
+        var bytes = Convert.FromBase64String(base64);
+        _loading = true;
+        using var ms = new MemoryStream(bytes);
+        var upload = await UploadService.UploadAudioAsync(ms, name, "audio/mpeg", bytes.Length);
+        _loading = false;
+        if (upload.IsSuccess)
+        {
+            _audioUrl = upload.Data!.Url;
+            _audioFileName = name;
+            _audioFileSize = bytes.Length;
+            _audioFile = null;
+        }
+        else _audioError = upload.Error;
     }
+
+    private void TriggerAudioClick() => JSRuntime.InvokeVoidAsync("triggerInputFile", "audio-file-input");
 
     private async Task HandleCoverSelect(InputFileChangeEventArgs e)
     {
-        _coverFile = e.File;
-        await using var stream = _coverFile.OpenReadStream(maxAllowedSize: 2 * 1024 * 1024);
+        await ProcessCoverFile(e.File);
+    }
+
+    private async Task ProcessCoverFile(IBrowserFile file)
+    {
+        _coverFile = file;
+        await using var stream = file.OpenReadStream(maxAllowedSize: 2 * 1024 * 1024);
         using var ms = new MemoryStream();
         await stream.CopyToAsync(ms);
         ms.Position = 0;
-        var upload = await UploadService.UploadImageAsync(ms, _coverFile.Name, _coverFile.ContentType, _coverFile.Size);
+        var upload = await UploadService.UploadImageAsync(ms, file.Name, file.ContentType, file.Size);
         if (upload.IsSuccess)
         {
             _coverUrl = upload.Data!.Url;
@@ -257,9 +289,12 @@
         }
     }
 
-    private void HandleCoverDrop(DragEventArgs e)
+    private async Task HandleCoverDrop(DragEventArgs e)
     {
         IsDraggingCover = false;
+        if (e.DataTransfer.Files.Count() == 0) return;
+        // For cover drop, trigger the hidden input to open file picker instead
+        await JSRuntime.InvokeVoidAsync("triggerInputFile", "cover-file-input");
     }
 
     private void ClearCover()
@@ -292,7 +327,7 @@
         }
     }
 
-    private void Reset() { _done = false; _title = ""; _audioFile = null; _coverFile = null; _coverPreview = null; _audioUrl = null; _coverUrl = null; }
+    private void Reset() { _done = false; _title = ""; _audioFile = null; _audioFileName = ""; _audioFileSize = 0; _coverFile = null; _coverPreview = null; _audioUrl = null; _coverUrl = null; }
 
     private static string FormatSize(long bytes)
     {

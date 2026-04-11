@@ -167,12 +167,11 @@
 			new NavItem("/settings", "Cài đặt", Icons.Settings, NavLinkMatch.Prefix),
 		};
 
-		if (CurrentUser.IsArtist)
+			if (CurrentUser.IsArtist)
 		{
 			_navItems.AddRange(new[]
 			{
 				new NavItem("/artist/songs", "Bài của tôi", Icons.ListMusic, NavLinkMatch.Prefix),
-				new NavItem("/artist/upload", "Upload", Icons.Upload, NavLinkMatch.Prefix),
 				new NavItem("/artist/albums", "Album", Icons.Disc, NavLinkMatch.Prefix),
 				new NavItem("/artist/stats", "Thống kê", Icons.BarChart, NavLinkMatch.Prefix),
 			});

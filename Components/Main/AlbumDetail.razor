@@ -1,7 +1,10 @@
 @page "/albums/{Id:int}"
+@rendermode InteractiveServer
 @inject IAlbumService AlbumService
+@inject ISongService SongService
 @inject IPlayerService PlayerService
 @inject ICurrentUserService CurrentUser
+@inject IToastService Toast
 @inject NavigationManager Nav
 
 <div class="page-content">
@@ -58,7 +61,7 @@
                     @foreach (var (song, i) in _album.Songs.Select((s, i) => (s, i)))
                     {
                         <SongRow Song="song" Index="i" ShowAlbum="false"
-                                 OnClick="HandlePlay" OnToggleLike="() => { }" />
+                                 OnClick="HandlePlay" OnToggleLike="() => HandleToggleLike(song)" />
                     }
                 </div>
             }
@@ -101,5 +104,20 @@
     {
         if (_album != null && _album.Songs.Count > 0)
             HandlePlay(0);
+    }
+
+    private async Task HandleToggleLike(SongDto song)
+    {
+        if (!CurrentUser.UserId.HasValue) return;
+        var result = await SongService.ToggleLikeAsync(song.Id, CurrentUser.UserId.Value);
+        if (result.IsSuccess && result.Data != null)
+        {
+            var idx = _album!.Songs.FindIndex(s => s.Id == song.Id);
+            if (idx >= 0)
+            {
+                _album.Songs[idx] = song with { IsLiked = result.Data.Liked, LikeCount = result.Data.NewCount };
+                StateHasChanged();
+            }
+        }
     }
 }
