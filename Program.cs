@@ -69,6 +69,7 @@ builder.Services.AddScoped<IAdminService, AdminService>();
 builder.Services.AddScoped<IUploadService, UploadService>();
 builder.Services.AddScoped<IPlayerService, PlayerService>();
 builder.Services.AddScoped<IToastService, ToastService>();
+builder.Services.AddScoped<IEmailService, EmailService>();
 
 // ── Blazor + MVC ───────────────────────────────────────────────────────────
 builder.Services.AddRazorComponents()

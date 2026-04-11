@@ -15,12 +15,14 @@ public class AuthService : IAuthService
     private readonly AppDbContext _db;
     private readonly IConfiguration _config;
     private readonly IHttpContextAccessor _httpContext;
+    private readonly IEmailService _email;
 
-    public AuthService(AppDbContext db, IConfiguration config, IHttpContextAccessor httpContext)
+    public AuthService(AppDbContext db, IConfiguration config, IHttpContextAccessor httpContext, IEmailService email)
     {
         _db = db;
         _config = config;
         _httpContext = httpContext;
+        _email = email;
     }
 
     public async Task<ServiceResult<UserDto>> RegisterAsync(RegisterDto dto)
@@ -100,8 +102,15 @@ public class AuthService : IAuthService
         _db.PasswordResetTokens.Add(reset);
         await _db.SaveChangesAsync();
 
-        // TODO: Send email via MailKit (configure SMTP in appsettings.json)
-        // Email sending is pending SMTP setup in appsettings.json
+        // Send reset email
+        var baseUrl = _config["App:BaseUrl"];
+        if (string.IsNullOrEmpty(baseUrl))
+        {
+            var request = _httpContext.HttpContext?.Request;
+            baseUrl = $"{request?.Scheme}://{request?.Host}";
+        }
+        var resetLink = $"{baseUrl.TrimEnd('/')}/reset-password?token={token}";
+        await _email.SendResetPasswordEmailAsync(user.Email, user.Username, resetLink);
 
         return ServiceResult.Ok();
     }

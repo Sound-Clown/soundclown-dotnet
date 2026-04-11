@@ -25,7 +25,7 @@ public class EmailService : IEmailService
         {
             using var client = new MailKit.Net.Smtp.SmtpClient();
 
-            await client.ConnectAsync(host, port, MailKit.Security.SecureSocketOptions.StartWhenAvailable);
+            await client.ConnectAsync(host, port, MailKit.Security.SecureSocketOptions.StartTlsWhenAvailable);
 
             if (!string.IsNullOrEmpty(pass))
                 await client.AuthenticateAsync(user, pass);
@@ -45,7 +45,7 @@ public class EmailService : IEmailService
             msg.From.Add(new MimeKit.MailboxAddress("underground.fm", user));
             msg.To.Add(new MimeKit.MailboxAddress(username, toEmail));
             msg.Subject = "Đặt lại mật khẩu — underground.fm";
-            msg.Body = new MimeKit.TextPart(MimeKit.TextFormat.Plain) { Text = body };
+            msg.Body = new MimeKit.TextPart("plain") { Text = body };
 
             await client.SendAsync(msg);
             await client.DisconnectAsync(true);
