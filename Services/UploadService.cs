@@ -27,6 +27,7 @@ public class UploadService : IUploadService
 
         using var ms = new MemoryStream();
         await stream.CopyToAsync(ms);
+        ms.Position = 0;
 
         var uploadParams = new RawUploadParams
         {
@@ -49,6 +50,7 @@ public class UploadService : IUploadService
 
         using var msImg = new MemoryStream();
         await stream.CopyToAsync(msImg);
+        msImg.Position = 0;
 
         var uploadParams = new ImageUploadParams
         {

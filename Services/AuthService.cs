@@ -27,6 +27,10 @@ public class AuthService : IAuthService
 
     public async Task<ServiceResult<UserDto>> RegisterAsync(RegisterDto dto)
     {
+        if (string.IsNullOrWhiteSpace(dto.Password) || dto.Password.Length < 8)
+            return ServiceResult<UserDto>.Fail("Mật khẩu phải ít nhất 8 ký tự.",
+                new Dictionary<string, string[]> { ["Password"] = new[] { "Mật khẩu phải ít nhất 8 ký tự." } });
+
         if (await _db.Users.AnyAsync(u => u.Email == dto.Email))
             return ServiceResult<UserDto>.Fail("Email đã được sử dụng.");
 
@@ -139,6 +143,9 @@ public class AuthService : IAuthService
     {
         var user = await _db.Users.FindAsync(userId);
         if (user == null) return ServiceResult.Fail("Không tìm thấy người dùng.");
+
+        if (string.IsNullOrWhiteSpace(dto.NewPassword) || dto.NewPassword.Length < 8)
+            return ServiceResult.Fail("Mật khẩu phải ít nhất 8 ký tự.");
 
         if (!BCrypt.Net.BCrypt.Verify(dto.CurrentPassword, user.PasswordHash))
             return ServiceResult.Fail("Mật khẩu hiện tại không đúng.");

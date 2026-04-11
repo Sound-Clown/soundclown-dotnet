@@ -53,7 +53,19 @@
         <!-- Password -->
         <div class="form-group mb-4">
             <label class="label">Mật khẩu</label>
-            <input class="input" type="password" @bind="_password" placeholder="••••••••" />
+            <input class="input" type="password" @bind="_password" placeholder="••••••••"
+                   @oninput="UpdateStrength" />
+            <!-- Strength meter -->
+            <div class="strength-bar mt-1">
+                @for (int i = 0; i < 4; i++)
+                {
+                    <div class="strength-segment @(_strength > i ? _strengthClass : "")"></div>
+                }
+            </div>
+            @if (!string.IsNullOrEmpty(_password) && _password.Length < 8)
+            {
+                <span class="form-error">Mật khẩu phải ít nhất 8 ký tự</span>
+            }
             @if (_errors.TryGetValue("Password", out var pErr))
             {
                 foreach (var e in pErr) { <span class="form-error">@e</span> }
@@ -114,12 +126,43 @@
     private bool _loading;
     private string _errorMsg = "";
     private Dictionary<string, string[]> _errors = new();
+    private int _strength;
+    private string _strengthClass = "";
+
+    private void UpdateStrength(ChangeEventArgs e)
+    {
+        _password = e.Value?.ToString() ?? "";
+        (_strength, _strengthClass) = ComputeStrength(_password);
+    }
+
+    private static (int, string) ComputeStrength(string pwd)
+    {
+        if (string.IsNullOrEmpty(pwd)) return (0, "");
+        int s = 0;
+        if (pwd.Length >= 8) s++;
+        if (pwd.Length >= 12) s++;
+        if (pwd.Any(char.IsUpper) && pwd.Any(char.IsLower)) s++;
+        if (pwd.Any(char.IsDigit) && pwd.Any(c => !char.IsLetterOrDigit(c))) s++;
+        return s switch
+        {
+            <= 1 => (s, "red"),
+            2 or 3 => (s, "amber"),
+            _ => (s, "green"),
+        };
+    }
 
     private async Task HandleSubmit()
     {
         _loading = true;
         _errorMsg = "";
         _errors = new();
+
+        if (_password.Length < 8)
+        {
+            _errors["Password"] = new[] { "Mật khẩu phải ít nhất 8 ký tự." };
+            _loading = false;
+            return;
+        }
 
         var dto = new RegisterDto(_username, _email, _password, _selectedRole);
         var result = await AuthService.RegisterAsync(dto);

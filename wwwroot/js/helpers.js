@@ -22,6 +22,28 @@ globalThis.readFileAsBase64 = (inputId) => {
     });
 };
 
+// Read the first dropped file directly from a DragEvent's dataTransfer.
+// Returns JSON: { name, contentType, size, data } or null on failure.
+globalThis.readDropFile = (dataTransfer) => {
+    return new Promise((resolve) => {
+        if (!dataTransfer?.files?.length) { resolve(null); return; }
+        const file = dataTransfer.files[0];
+        const reader = new FileReader();
+        reader.onload = () => {
+            const idx = reader.result?.indexOf(',') ?? -1;
+            const base64 = idx >= 0 ? reader.result.substring(idx + 1) : '';
+            resolve(JSON.stringify({
+                name: file.name,
+                contentType: file.type,
+                size: file.size,
+                data: base64
+            }));
+        };
+        reader.onerror = () => resolve(null);
+        reader.readAsDataURL(file);
+    });
+};
+
 // ── Toast — invoked from Blazor via IJSRuntime ──────────────────────────────────
 globalThis.showToast = (type, message) => {
     const container = document.getElementById('toast-container');

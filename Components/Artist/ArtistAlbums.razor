@@ -162,6 +162,7 @@
     private bool _editLoading;
     private string _editError = "";
     private bool IsDraggingCover;
+    private record DropFileInfo(string Name, string ContentType, long Size, string Data);
 
     protected override async Task OnInitializedAsync()
     {
@@ -184,19 +185,42 @@
     private async Task HandleEditCover(InputFileChangeEventArgs e)
     {
         var file = e.File;
+        var allowed = new[] { "image/jpeg", "image/png", "image/webp" };
+        if (!allowed.Contains(file.ContentType.ToLowerInvariant()))
+        { Toast.Show(ToastType.Error, "Chỉ chấp nhận ảnh JPG, PNG hoặc WebP."); return; }
+        if (file.Size > 2 * 1024 * 1024)
+        { Toast.Show(ToastType.Error, "Ảnh bìa tối đa 2MB."); return; }
         await using var stream = file.OpenReadStream(maxAllowedSize: 2 * 1024 * 1024);
         using var ms = new MemoryStream();
         await stream.CopyToAsync(ms);
         ms.Position = 0;
         var upload = await UploadService.UploadImageAsync(ms, file.Name, file.ContentType, file.Size);
-        if (upload.IsSuccess) _editCoverUrl = upload.Data!.Url;
+        if (upload.IsSuccess) { _editCoverUrl = upload.Data!.Url; Toast.Show(ToastType.Success, "Upload ảnh bìa thành công!"); }
+        else Toast.Show(ToastType.Error, upload.Error ?? "Upload ảnh thất bại.");
     }
 
     private async Task HandleCoverDrop(DragEventArgs e)
     {
         IsDraggingCover = false;
-        if (e.DataTransfer.Files.Count() == 0) return;
-        await JSRuntime.InvokeVoidAsync("triggerInputFile", "album-cover-input");
+        var json = await JSRuntime.InvokeAsync<string?>("readDropFile", e.DataTransfer);
+        if (string.IsNullOrEmpty(json)) { Toast.Show(ToastType.Error, "Không đọc được file."); return; }
+        var dropFile = System.Text.Json.JsonSerializer.Deserialize<DropFileInfo>(json!);
+        if (dropFile == null) { Toast.Show(ToastType.Error, "Không đọc được file."); return; }
+        var allowed = new[] { "image/jpeg", "image/png", "image/webp" };
+        if (!allowed.Contains(dropFile.ContentType.ToLowerInvariant()))
+        { Toast.Show(ToastType.Error, "Chỉ chấp nhận ảnh JPG, PNG hoặc WebP."); return; }
+        if (dropFile.Size > 2 * 1024 * 1024)
+        { Toast.Show(ToastType.Error, "Ảnh bìa tối đa 2MB."); return; }
+        var bytes = Convert.FromBase64String(dropFile.Data);
+        await UploadEditCoverBytes(dropFile.Name, dropFile.ContentType, bytes);
+    }
+
+    private async Task UploadEditCoverBytes(string fileName, string contentType, byte[] bytes)
+    {
+        using var ms = new MemoryStream(bytes);
+        var upload = await UploadService.UploadImageAsync(ms, fileName, contentType, bytes.Length);
+        if (upload.IsSuccess) { _editCoverUrl = upload.Data!.Url; Toast.Show(ToastType.Success, "Upload ảnh bìa thành công!"); }
+        else Toast.Show(ToastType.Error, upload.Error ?? "Upload ảnh thất bại.");
     }
 
     private void ClearEditCover() => _editCoverUrl = null;

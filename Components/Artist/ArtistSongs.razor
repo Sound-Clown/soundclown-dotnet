@@ -328,6 +328,7 @@
     private bool _upLoading;
     private bool IsDraggingAudio;
     private bool IsDraggingCover;
+    private record DropFileInfo(string Name, string ContentType, long Size, string Data);
 
     // Delete
     private bool _deleteConfirmOpen;
@@ -355,9 +356,9 @@
         _upAudioError = "";
         var file = e.File;
         if (file.ContentType != "audio/mpeg" && file.ContentType != "audio/mp3")
-        { _upAudioError = "Chỉ chấp nhận file MP3."; return; }
+        { _upAudioError = "Chỉ chấp nhận file MP3."; Toast.Show(ToastType.Error, "Chỉ chấp nhận file MP3."); return; }
         if (file.Size > 10 * 1024 * 1024)
-        { _upAudioError = "File tối đa 10MB."; return; }
+        { _upAudioError = "File tối đa 10MB."; Toast.Show(ToastType.Error, "File âm thanh tối đa 10MB."); return; }
         _upLoading = true;
         await using var stream = file.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024);
         using var ms = new MemoryStream();
@@ -366,25 +367,29 @@
         var upload = await UploadService.UploadAudioAsync(ms, file.Name, file.ContentType, file.Size);
         _upLoading = false;
         if (upload.IsSuccess)
-        { _upAudioUrl = upload.Data!.Url; _upAudioFileName = file.Name; _upAudioFileSize = file.Size; }
-        else _upAudioError = upload.Error ?? "Upload thất bại.";
+        { _upAudioUrl = upload.Data!.Url; _upAudioFileName = file.Name; _upAudioFileSize = file.Size; Toast.Show(ToastType.Success, "Upload âm thanh thành công!"); }
+        else { _upAudioError = upload.Error; Toast.Show(ToastType.Error, upload.Error ?? "Upload thất bại."); }
     }
 
     private async Task HandleAudioDrop(DragEventArgs e)
     {
         IsDraggingAudio = false;
-        if (e.DataTransfer.Files.Count() == 0) return;
-        var name = e.DataTransfer.Files[0];
-        var base64 = await JSRuntime.InvokeAsync<string>("readFileAsBase64", "audio-upload-input");
-        if (string.IsNullOrEmpty(base64)) return;
-        var bytes = Convert.FromBase64String(base64);
+        var json = await JSRuntime.InvokeAsync<string?>("readDropFile", e.DataTransfer);
+        if (string.IsNullOrEmpty(json)) { Toast.Show(ToastType.Error, "Không đọc được file."); return; }
+        var dropFile = System.Text.Json.JsonSerializer.Deserialize<DropFileInfo>(json!);
+        if (dropFile == null) { Toast.Show(ToastType.Error, "Không đọc được file."); return; }
+        if (dropFile.ContentType != "audio/mpeg" && dropFile.ContentType != "audio/mp3")
+        { _upAudioError = "Chỉ chấp nhận file MP3."; Toast.Show(ToastType.Error, "Chỉ chấp nhận file MP3."); return; }
+        if (dropFile.Size > 10 * 1024 * 1024)
+        { _upAudioError = "File tối đa 10MB."; Toast.Show(ToastType.Error, "File âm thanh tối đa 10MB."); return; }
+        var bytes = Convert.FromBase64String(dropFile.Data);
         _upLoading = true;
         using var ms2 = new MemoryStream(bytes);
-        var upload = await UploadService.UploadAudioAsync(ms2, name, "audio/mpeg", bytes.Length);
+        var upload = await UploadService.UploadAudioAsync(ms2, dropFile.Name, dropFile.ContentType, bytes.Length);
         _upLoading = false;
         if (upload.IsSuccess)
-        { _upAudioUrl = upload.Data!.Url; _upAudioFileName = name; _upAudioFileSize = bytes.Length; }
-        else _upAudioError = upload.Error ?? "Upload thất bại.";
+        { _upAudioUrl = upload.Data!.Url; _upAudioFileName = dropFile.Name; _upAudioFileSize = bytes.Length; Toast.Show(ToastType.Success, "Upload âm thanh thành công!"); }
+        else { _upAudioError = upload.Error; Toast.Show(ToastType.Error, upload.Error ?? "Upload thất bại."); }
     }
 
     private void TriggerAudioClick() => JSRuntime.InvokeVoidAsync("triggerInputFile", "audio-upload-input");
@@ -393,20 +398,44 @@
 
     private async Task ProcessUpCover(IBrowserFile file)
     {
+        var allowed = new[] { "image/jpeg", "image/png", "image/webp" };
+        if (!allowed.Contains(file.ContentType.ToLowerInvariant()))
+        { Toast.Show(ToastType.Error, "Chỉ chấp nhận ảnh JPG, PNG hoặc WebP."); return; }
+        if (file.Size > 2 * 1024 * 1024)
+        { Toast.Show(ToastType.Error, "Ảnh bìa tối đa 2MB."); return; }
         await using var stream = file.OpenReadStream(maxAllowedSize: 2 * 1024 * 1024);
         using var ms = new MemoryStream();
         await stream.CopyToAsync(ms);
         ms.Position = 0;
         var upload = await UploadService.UploadImageAsync(ms, file.Name, file.ContentType, file.Size);
         if (upload.IsSuccess)
-        { _upCoverUrl = upload.Data!.Url; _upCoverPreview = upload.Data.Url; }
+        { _upCoverUrl = upload.Data!.Url; _upCoverPreview = upload.Data.Url; Toast.Show(ToastType.Success, "Upload ảnh bìa thành công!"); }
+        else Toast.Show(ToastType.Error, upload.Error ?? "Upload ảnh thất bại.");
     }
 
     private async Task HandleCoverDrop(DragEventArgs e)
     {
         IsDraggingCover = false;
-        if (e.DataTransfer.Files.Count() == 0) return;
-        await JSRuntime.InvokeVoidAsync("triggerInputFile", "cover-upload-input");
+        var json = await JSRuntime.InvokeAsync<string?>("readDropFile", e.DataTransfer);
+        if (string.IsNullOrEmpty(json)) { Toast.Show(ToastType.Error, "Không đọc được file."); return; }
+        var dropFile = System.Text.Json.JsonSerializer.Deserialize<DropFileInfo>(json!);
+        if (dropFile == null) { Toast.Show(ToastType.Error, "Không đọc được file."); return; }
+        var allowed = new[] { "image/jpeg", "image/png", "image/webp" };
+        if (!allowed.Contains(dropFile.ContentType.ToLowerInvariant()))
+        { Toast.Show(ToastType.Error, "Chỉ chấp nhận ảnh JPG, PNG hoặc WebP."); return; }
+        if (dropFile.Size > 2 * 1024 * 1024)
+        { Toast.Show(ToastType.Error, "Ảnh bìa tối đa 2MB."); return; }
+        var bytes = Convert.FromBase64String(dropFile.Data);
+        await ProcessUpCoverBytes(dropFile.Name, dropFile.ContentType, bytes);
+    }
+
+    private async Task ProcessUpCoverBytes(string fileName, string contentType, byte[] bytes)
+    {
+        using var ms = new MemoryStream(bytes);
+        var upload = await UploadService.UploadImageAsync(ms, fileName, contentType, bytes.Length);
+        if (upload.IsSuccess)
+        { _upCoverUrl = upload.Data!.Url; _upCoverPreview = upload.Data.Url; Toast.Show(ToastType.Success, "Upload ảnh bìa thành công!"); }
+        else Toast.Show(ToastType.Error, upload.Error ?? "Upload ảnh thất bại.");
     }
 
     private void ClearUpCover() { _upCoverUrl = null; _upCoverPreview = null; }
@@ -458,12 +487,18 @@
 
     private async Task ProcessEditCover(IBrowserFile file)
     {
+        var allowed = new[] { "image/jpeg", "image/png", "image/webp" };
+        if (!allowed.Contains(file.ContentType.ToLowerInvariant()))
+        { Toast.Show(ToastType.Error, "Chỉ chấp nhận ảnh JPG, PNG hoặc WebP."); return; }
+        if (file.Size > 2 * 1024 * 1024)
+        { Toast.Show(ToastType.Error, "Ảnh bìa tối đa 2MB."); return; }
         await using var stream = file.OpenReadStream(maxAllowedSize: 2 * 1024 * 1024);
         using var ms = new MemoryStream();
         await stream.CopyToAsync(ms);
         ms.Position = 0;
         var upload = await UploadService.UploadImageAsync(ms, file.Name, file.ContentType, file.Size);
-        if (upload.IsSuccess) _editCoverUrl = upload.Data!.Url;
+        if (upload.IsSuccess) { _editCoverUrl = upload.Data!.Url; Toast.Show(ToastType.Success, "Upload ảnh bìa thành công!"); }
+        else Toast.Show(ToastType.Error, upload.Error ?? "Upload ảnh thất bại.");
     }
 
     private async Task HandleEditCoverDrop(DragEventArgs e)

@@ -57,13 +57,20 @@
             <!-- Audio upload -->
             <div class="form-group mb-5">
                 <label class="label">File âm thanh</label>
-                <div class="upload-zone @(IsDraggingAudio ? "drag-over" : "")"
+                <div class="upload-zone @(IsDraggingAudio ? "drag-over" : "") @(_audioLoading ? "opacity-60 pointer-events-none" : "")"
                      @ondragover:preventDefault @ondragover="() => IsDraggingAudio = true"
                      @ondragleave="() => IsDraggingAudio = false"
                      @ondrop.prevent="HandleAudioDrop"
-                     @onclick="TriggerAudioClick">
+                     @onclick='() => { if (!_audioLoading) TriggerAudioClick(); }'>
                     <InputFile id="audio-file-input" OnChange="HandleAudioSelect" accept=".mp3,audio/mpeg" class="sr-only" />
-                    @if (!string.IsNullOrEmpty(_audioFileName))
+                    @if (_audioLoading)
+                    {
+                        <div class="text-center py-6">
+                            <span class="w-6 h-6 border-2 border-t-[var(--accent)] rounded-full animate-spin mx-auto mb-2 block"></span>
+                            <p class="text-sm" style="color: var(--muted-foreground);">Đang upload...</p>
+                        </div>
+                    }
+                    else if (!string.IsNullOrEmpty(_audioFileName))
                     {
                         <div class="flex items-center gap-3">
                             <svg width="28" height="28" fill="none" stroke="var(--accent)" stroke-width="1.5" viewBox="0 0 24 24">
@@ -111,12 +118,19 @@
                             </button>
                         </div>
                     }
-                    <label class="upload-zone-sm @(IsDraggingCover ? "drag-over" : "") flex-1 cursor-pointer"
+                    <label class="upload-zone-sm @(IsDraggingCover ? "drag-over" : "") flex-1 cursor-pointer @( _coverLoading ? "opacity-60 pointer-events-none" : "")"
                            @ondragover:preventDefault @ondragover="() => IsDraggingCover = true"
                            @ondragleave="() => IsDraggingCover = false"
                            @ondrop.prevent="HandleCoverDrop">
                         <InputFile id="cover-file-input" OnChange="HandleCoverSelect" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" class="sr-only" />
-                        @if (_coverPreview != null)
+                        @if (_coverLoading)
+                        {
+                            <div class="text-center">
+                                <span class="w-5 h-5 border-2 border-t-[var(--accent)] rounded-full animate-spin mx-auto mb-1 block"></span>
+                                <p class="text-xs" style="color: var(--muted-foreground-3);">Đang upload...</p>
+                            </div>
+                        }
+                        else if (_coverPreview != null)
                         {
                             <p class="text-xs text-center" style="color: var(--muted-foreground-2);">Đổi ảnh</p>
                         }
@@ -133,6 +147,10 @@
                         }
                     </label>
                 </div>
+                @if (!string.IsNullOrEmpty(_coverError))
+                {
+                    <span class="form-error">@_coverError</span>
+                }
             </div>
 
             @if (!string.IsNullOrEmpty(_error))
@@ -142,7 +160,7 @@
                 </div>
             }
 
-            <button type="submit" class="btn-primary w-full" disabled="@_loading">
+            <button type="submit" class="btn-primary w-full" disabled="@(_loading || _audioLoading)">
                 @if (_loading) {
                     <span class="w-4 h-4 border-2 border-t-black rounded-full animate-spin"></span>
                 }
@@ -200,14 +218,18 @@
     private IBrowserFile? _coverFile;
     private string? _coverPreview;
     private string? _audioError;
+    private string? _coverError;
     private string? _audioUrl;
     private string? _coverUrl;
+    private bool _audioLoading;
+    private bool _coverLoading;
     private bool _loading;
     private bool _done;
     private bool IsDraggingAudio;
     private bool IsDraggingCover;
     private bool _albumsLoading = true;
     private List<AlbumListDto> _albums = new();
+    private record DropFileInfo(string Name, string ContentType, long Size, string Data);
 
     protected override async Task OnInitializedAsync()
     {
@@ -222,49 +244,49 @@
         var file = e.File;
         if (file.ContentType != "audio/mpeg" && file.ContentType != "audio/mp3")
         {
-            _audioError = "Chỉ chấp nhận file MP3."; return;
+            _audioError = "Chỉ chấp nhận file MP3."; Toast.Show(ToastType.Error, "Chỉ chấp nhận file MP3."); return;
         }
         if (file.Size > 10 * 1024 * 1024)
         {
-            _audioError = "File tối đa 10MB."; return;
+            _audioError = "File tối đa 10MB."; Toast.Show(ToastType.Error, "File âm thanh tối đa 10MB."); return;
         }
-        _loading = true;
+        _audioLoading = true;
         await using var stream = file.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024);
         using var ms = new MemoryStream();
         await stream.CopyToAsync(ms);
         ms.Position = 0;
         var upload = await UploadService.UploadAudioAsync(ms, file.Name, file.ContentType, file.Size);
-        _loading = false;
+        _audioLoading = false;
         if (upload.IsSuccess)
         {
             _audioUrl = upload.Data!.Url;
             _audioFileName = file.Name;
             _audioFileSize = file.Size;
             _audioFile = file;
+            Toast.Show(ToastType.Success, "Upload âm thanh thành công!");
         }
-        else _audioError = upload.Error;
+        else { _audioError = upload.Error; Toast.Show(ToastType.Error, upload.Error ?? "Upload thất bại."); }
     }
 
     private async Task HandleAudioDrop(DragEventArgs e)
     {
         IsDraggingAudio = false;
-        if (e.DataTransfer.Files.Count() == 0) return;
-        var name = e.DataTransfer.Files[0];
-        var base64 = await JSRuntime.InvokeAsync<string>("readFileAsBase64", "audio-file-input");
-        if (string.IsNullOrEmpty(base64)) return;
-        var bytes = Convert.FromBase64String(base64);
-        _loading = true;
+        var json = await JSRuntime.InvokeAsync<string?>("readDropFile", e.DataTransfer);
+        if (string.IsNullOrEmpty(json)) { Toast.Show(ToastType.Error, "Không đọc được file."); return; }
+        var dropFile = System.Text.Json.JsonSerializer.Deserialize<DropFileInfo>(json!);
+        if (dropFile == null) { Toast.Show(ToastType.Error, "Không đọc được file."); return; }
+        if (dropFile.ContentType != "audio/mpeg" && dropFile.ContentType != "audio/mp3")
+        { _audioError = "Chỉ chấp nhận file MP3."; Toast.Show(ToastType.Error, "Chỉ chấp nhận file MP3."); return; }
+        if (dropFile.Size > 10 * 1024 * 1024)
+        { _audioError = "File tối đa 10MB."; Toast.Show(ToastType.Error, "File âm thanh tối đa 10MB."); return; }
+        var bytes = Convert.FromBase64String(dropFile.Data);
+        _audioLoading = true;
         using var ms = new MemoryStream(bytes);
-        var upload = await UploadService.UploadAudioAsync(ms, name, "audio/mpeg", bytes.Length);
-        _loading = false;
+        var upload = await UploadService.UploadAudioAsync(ms, dropFile.Name, dropFile.ContentType, bytes.Length);
+        _audioLoading = false;
         if (upload.IsSuccess)
-        {
-            _audioUrl = upload.Data!.Url;
-            _audioFileName = name;
-            _audioFileSize = bytes.Length;
-            _audioFile = null;
-        }
-        else _audioError = upload.Error;
+        { _audioUrl = upload.Data!.Url; _audioFileName = dropFile.Name; _audioFileSize = bytes.Length; _audioFile = null; Toast.Show(ToastType.Success, "Upload âm thanh thành công!"); }
+        else { _audioError = upload.Error; Toast.Show(ToastType.Error, upload.Error ?? "Upload thất bại."); }
     }
 
     private void TriggerAudioClick() => JSRuntime.InvokeVoidAsync("triggerInputFile", "audio-file-input");
@@ -277,24 +299,63 @@
     private async Task ProcessCoverFile(IBrowserFile file)
     {
         _coverFile = file;
+        _coverLoading = true;
+        _coverError = null;
         await using var stream = file.OpenReadStream(maxAllowedSize: 2 * 1024 * 1024);
         using var ms = new MemoryStream();
         await stream.CopyToAsync(ms);
         ms.Position = 0;
         var upload = await UploadService.UploadImageAsync(ms, file.Name, file.ContentType, file.Size);
+        _coverLoading = false;
         if (upload.IsSuccess)
         {
             _coverUrl = upload.Data!.Url;
             _coverPreview = upload.Data.Url;
+            Toast.Show(ToastType.Success, "Upload ảnh bìa thành công!");
+        }
+        else
+        {
+            _coverFile = null;
+            _coverError = upload.Error;
+            Toast.Show(ToastType.Error, upload.Error ?? "Upload ảnh thất bại.");
         }
     }
 
     private async Task HandleCoverDrop(DragEventArgs e)
     {
         IsDraggingCover = false;
-        if (e.DataTransfer.Files.Count() == 0) return;
-        // For cover drop, trigger the hidden input to open file picker instead
-        await JSRuntime.InvokeVoidAsync("triggerInputFile", "cover-file-input");
+        var json = await JSRuntime.InvokeAsync<string?>("readDropFile", e.DataTransfer);
+        if (string.IsNullOrEmpty(json)) { Toast.Show(ToastType.Error, "Không đọc được file."); return; }
+        var dropFile = System.Text.Json.JsonSerializer.Deserialize<DropFileInfo>(json!);
+        if (dropFile == null) { Toast.Show(ToastType.Error, "Không đọc được file."); return; }
+        var allowedTypes = new[] { "image/jpeg", "image/png", "image/webp" };
+        if (!allowedTypes.Contains(dropFile.ContentType.ToLowerInvariant()))
+        { Toast.Show(ToastType.Error, "Chỉ chấp nhận ảnh JPG, PNG hoặc WebP."); return; }
+        if (dropFile.Size > 2 * 1024 * 1024)
+        { Toast.Show(ToastType.Error, "Ảnh bìa tối đa 2MB."); return; }
+        var bytes = Convert.FromBase64String(dropFile.Data);
+        await ProcessCoverBytes(dropFile.Name, dropFile.ContentType, bytes);
+    }
+
+    private async Task ProcessCoverBytes(string fileName, string contentType, byte[] bytes)
+    {
+        _coverLoading = true;
+        _coverError = null;
+        using var ms = new MemoryStream(bytes);
+        var upload = await UploadService.UploadImageAsync(ms, fileName, contentType, bytes.Length);
+        _coverLoading = false;
+        if (upload.IsSuccess)
+        {
+            _coverUrl = upload.Data!.Url;
+            _coverPreview = upload.Data.Url;
+            Toast.Show(ToastType.Success, "Upload ảnh bìa thành công!");
+        }
+        else
+        {
+            _coverFile = null;
+            _coverError = upload.Error;
+            Toast.Show(ToastType.Error, upload.Error ?? "Upload ảnh thất bại.");
+        }
     }
 
     private void ClearCover()
