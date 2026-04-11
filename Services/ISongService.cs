@@ -6,6 +6,7 @@ public interface ISongService
 {
     Task<ServiceResult<PagedResult<SongDto>>> GetApprovedSongsAsync(int page, int pageSize = 20);
     Task<ServiceResult<List<SongDto>>> SearchSongsAsync(string query, int currentUserId);
+    Task<(List<SongDto> Songs, List<ArtistSearchDto> Artists)> SearchAsync(string query, int currentUserId);
     Task<ServiceResult<SongDto>> GetByIdAsync(int id, int currentUserId);
     Task<ServiceResult<SongDto>> CreateAsync(CreateSongDto dto, int artistId);
     Task<ServiceResult<SongDto>> UpdateAsync(int id, UpdateSongDto dto, int artistId);

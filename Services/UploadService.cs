@@ -31,7 +31,7 @@ public class UploadService : IUploadService
         var uploadParams = new RawUploadParams
         {
             File = new FileDescription(fileName, ms),
-            Folder = "music-app/audio"
+            Folder = "soundclown/audio"
         };
 
         var result = await _cloudinary.UploadAsync(uploadParams);
@@ -53,7 +53,7 @@ public class UploadService : IUploadService
         var uploadParams = new ImageUploadParams
         {
             File = new FileDescription(fileName, msImg),
-            Folder = "music-app/covers",
+            Folder = "soundclown/covers",
             Transformation = new Transformation().Width(600).Height(600).Crop("fill")
         };
 

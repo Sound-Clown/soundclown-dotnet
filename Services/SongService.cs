@@ -53,6 +53,35 @@ public class SongService : ISongService
             songs.Select(s => MapSong(s, currentUserId)).ToList());
     }
 
+    public async Task<(List<SongDto> Songs, List<ArtistSearchDto> Artists)> SearchAsync(string query, int currentUserId)
+    {
+        var q = query.Trim().ToLower();
+        if (q.Length < 2) return (new(), new());
+
+        var artists = await _db.Users
+            .AsNoTracking()
+            .Where(u => u.IsActive &&
+                        (EF.Functions.ILike(u.Username, $"%{q}%") ||
+                         EF.Functions.ILike(u.Email, $"%{q}%")))
+            .Take(6)
+            .Select(u => new ArtistSearchDto(u.Id, u.Username, null, u.Role.ToString()))
+            .ToListAsync();
+
+        var songs = await _db.Songs
+            .AsNoTracking()
+            .Where(s => s.Status == SongStatus.Approved &&
+                        (EF.Functions.ILike(s.Title, $"%{q}%") ||
+                         EF.Functions.ILike(s.Artist.Username, $"%{q}%")))
+            .Include(s => s.Artist)
+            .Take(50)
+            .ToListAsync();
+
+        return (
+            songs.Select(s => MapSong(s, currentUserId)).ToList(),
+            artists
+        );
+    }
+
     public async Task<ServiceResult<SongDto>> GetByIdAsync(int id, int currentUserId)
     {
         var song = await _db.Songs

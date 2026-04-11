@@ -7,13 +7,15 @@
 
 <div class="page-content">
     <!-- Search input -->
-    <div class="relative max-w-md mx-auto mb-8">
-        <svg class="absolute left-4 top-1/2 -translate-y-1/2" width="16" height="16" fill="none"
+    <div class="relative max-w-md mx-auto mb-8" style="height: 42px;">
+        <svg class="absolute left-3" style="top: 13px; pointer-events: none;"
+             width="16" height="16" fill="none"
              stroke="var(--muted-foreground)" stroke-width="2" viewBox="0 0 24 24">
             <circle cx="11" cy="11" r="8"/>
             <line x1="21" y1="21" x2="16.65" y2="16.65"/>
         </svg>
-        <input class="input pl-12" placeholder="Tìm bài hát, nghệ sĩ..."
+        <input class="input" style="padding-left: 2.25rem;"
+               placeholder="Tìm bài hát, nghệ sĩ..."
                @bind="_query" @bind:event="oninput" />
     </div>
 
@@ -21,30 +23,72 @@
     {
         <LoadingSpinner />
     }
-    else if (_results != null)
+    else if (!string.IsNullOrEmpty(_query) && _query.Length >= 2)
     {
-        if (_results.IsSuccess && _results.Data!.Count > 0)
+        <!-- Artists section -->
+        @if (_artists.Count > 0)
         {
-            <div class="space-y-1">
-                <p class="text-xs mb-3" style="color: var(--muted-foreground-3);">@_results.Data.Count kết quả</p>
-                @foreach (var item in _results.Data.Select((s, i) => (Song: s, Index: i)))
-                {
-                    <SongRow Song="item.Song" Index="item.Index" ShowAlbum="true"
-                             OnClick="HandlePlay"
-                             OnToggleLike="() => ToggleLike(item.Song)" />
-                }
+            <div class="mb-8">
+                <p class="text-xs font-medium uppercase tracking-wider mb-3" style="color: var(--muted-foreground-3);">
+                    Nghệ sĩ
+                </p>
+                <div class="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+                    @foreach (var artist in _artists)
+                    {
+                        <div class="flex-shrink-0 w-36 text-center">
+                            <div class="w-24 h-24 rounded-full mx-auto mb-2 overflow-hidden"
+                                 style="background: var(--surface);">
+                                @if (!string.IsNullOrEmpty(artist.AvatarUrl))
+                                {
+                                    <img src="@artist.AvatarUrl" class="w-full h-full object-cover" />
+                                }
+                                else
+                                {
+                                    <div class="w-full h-full flex items-center justify-center text-lg font-bold"
+                                         style="background: var(--surface-2); color: var(--accent);">
+                                        @artist.Username.First().ToString().ToUpper()
+                                    </div>
+                                }
+                            </div>
+                            <p class="text-xs font-medium truncate">@artist.Username</p>
+                            <p class="text-xs truncate" style="color: var(--muted-foreground-3);">@artist.Role</p>
+                        </div>
+                    }
+                </div>
             </div>
         }
-        else if (_query.Length >= 2)
+
+        <!-- Songs section -->
+        @if (_songs.Count > 0)
         {
-            <EmptyState Title="Không tìm thấy" Description='$"Không có kết quả cho \"{_query}\""' />
+            <div>
+                <p class="text-xs font-medium uppercase tracking-wider mb-3" style="color: var(--muted-foreground-3);">
+                    Bài hát
+                </p>
+                <div class="space-y-1">
+                    @foreach (var item in _songs.Select((s, i) => (Song: s, Index: i)))
+                    {
+                        <SongRow Song="item.Song" Index="item.Index" ShowAlbum="true"
+                                 OnClick="HandlePlay"
+                                 OnToggleLike="() => ToggleLike(item.Song)" />
+                    }
+                </div>
+            </div>
+        }
+
+        <!-- No results -->
+        @if (_artists.Count == 0 && _songs.Count == 0)
+        {
+            <EmptyState Title="Không tìm thấy"
+                        Description="@("Không có kết quả cho \"" + _query + "\"")" />
         }
     }
 </div>
 
 @code {
     private string _query = "";
-    private ServiceResult<List<SongDto>>? _results;
+    private List<SongDto> _songs = new();
+    private List<ArtistSearchDto> _artists = new();
     private bool _loading;
     private System.Timers.Timer? _debounce;
 
@@ -53,10 +97,12 @@
         _debounce = new System.Timers.Timer(300);
         _debounce.Elapsed += async (_, _) =>
         {
-            if (_query.Length < 2) { _results = null; await InvokeAsync(StateHasChanged); return; }
+            if (_query.Length < 2) { _songs = new(); _artists = new(); await InvokeAsync(StateHasChanged); return; }
             _loading = true;
             await InvokeAsync(StateHasChanged);
-            _results = await SongService.SearchSongsAsync(_query, CurrentUser.UserId ?? 0);
+            var result = await SongService.SearchAsync(_query, CurrentUser.UserId ?? 0);
+            _songs = result.Songs;
+            _artists = result.Artists;
             _loading = false;
             await InvokeAsync(StateHasChanged);
         };
@@ -72,8 +118,8 @@
 
     private void HandlePlay(int index)
     {
-        if (_results?.IsSuccess != true) return;
-        var songs = _results.Data!.Select(s => new PlayerSong(
+        if (_songs.Count == 0) return;
+        var songs = _songs.Select(s => new PlayerSong(
             s.Id, s.Title, s.CoverImage, s.AudioFile,
             s.ArtistUsername, s.PlayCount, s.LikeCount, s.IsLiked)).ToList();
         PlayerService.SetQueue(songs, index, "search");
@@ -83,13 +129,7 @@
     {
         if (!CurrentUser.UserId.HasValue) return;
         var result = await SongService.ToggleLikeAsync(song.Id, CurrentUser.UserId.Value);
-        if (result.IsSuccess)
-        {
-            StateHasChanged();
-        }
-        else
-        {
-            Toast.Show(ToastType.Error, result.Error ?? "Lỗi");
-        }
+        if (result.IsSuccess) StateHasChanged();
+        else Toast.Show(ToastType.Error, result.Error ?? "Lỗi");
     }
 }
