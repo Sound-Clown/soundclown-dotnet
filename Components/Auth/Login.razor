@@ -5,16 +5,10 @@
 @inject IToastService Toast
 
 <div class="text-center mb-8">
-    <div class="w-14 h-14 rounded-xl mx-auto mb-4 flex items-center justify-center"
-         style="background: var(--accent); box-shadow: 0 0 24px rgba(245, 166, 35, 0.2);">
-        <svg width="24" height="24" fill="black" viewBox="0 0 24 24">
-            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
-            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-            <line x1="12" y1="19" x2="12" y2="23"/>
-            <line x1="8" y1="23" x2="16" y2="23"/>
-        </svg>
-    </div>
-    <h1 class="text-2xl font-medium text-[var(--foreground)]">underground.fm</h1>
+    <img src="images/logo.png" alt="Logo" class="w-14 h-14 rounded-xl mx-auto mb-4 object-cover"
+         style="box-shadow: 0 0 24px rgba(245, 166, 35, 0.2);"
+         onerror="this.style.display='none'" />
+    <h1 class="text-2xl font-medium text-[var(--foreground)]">SoundClown</h1>
     <p class="text-sm mt-1" style="color: var(--muted-foreground-2);">Where Music Meets Your Mood</p>
 </div>
 

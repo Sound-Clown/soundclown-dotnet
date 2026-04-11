@@ -33,7 +33,7 @@ public class EmailService : IEmailService
             var body = $@"
  Xin chào {username},
 
- Bạn đã yêu cầu đặt lại mật khẩu cho tài khoản trên underground.fm.
+ Bạn đã yêu cầu đặt lại mật khẩu cho tài khoản trên SoundClown.
 
  Nhấn vào link bên dưới để đặt lại mật khẩu:
  {resetLink}
@@ -42,9 +42,9 @@ public class EmailService : IEmailService
             ".Trim();
 
             var msg = new MimeKit.MimeMessage();
-            msg.From.Add(new MimeKit.MailboxAddress("underground.fm", user));
+            msg.From.Add(new MimeKit.MailboxAddress("SoundClown", user));
             msg.To.Add(new MimeKit.MailboxAddress(username, toEmail));
-            msg.Subject = "Đặt lại mật khẩu — underground.fm";
+            msg.Subject = "Đặt lại mật khẩu — SoundClown";
             msg.Body = new MimeKit.TextPart("plain") { Text = body };
 
             await client.SendAsync(msg);
