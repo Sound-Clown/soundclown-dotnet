@@ -1,3 +1,4 @@
+@rendermode InteractiveServer
 @implements IDisposable
 @inject IPlayerService Player
 @inject ISongService SongService
@@ -45,7 +46,6 @@
 
         <!-- Playback controls (center) -->
         <div class="flex-1 flex flex-col items-center gap-1 md:gap-2">
-            <!-- Buttons -->
             <div class="flex items-center gap-3 md:gap-5">
                 <button class="btn-ghost p-1.5 hidden md:block" @onclick="() => Player.Prev()">
                     <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -91,8 +91,7 @@
 
         <!-- Right actions -->
         <div class="flex items-center gap-2 flex-shrink-0" style="width: 120px; justify-content: flex-end;">
-            <button class="btn-ghost p-1.5 hidden md:block"
-                    @onclick="ToggleLike">
+            <button class="btn-ghost p-1.5 hidden md:block" @onclick="ToggleLike">
                 <svg width="16" height="16" fill="@(_liked ? "var(--accent)" : "none")"
                      stroke="@(_liked ? "var(--accent)" : "currentColor")" stroke-width="2" viewBox="0 0 24 24">
                     <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
@@ -123,7 +122,6 @@
 {
     <div class="fixed inset-0 z-50 flex flex-col"
          style="background: var(--background);">
-        <!-- Background blur -->
         @if (Player.CurrentSong?.CoverImage != null)
         {
             <div class="absolute inset-0"
@@ -171,6 +169,7 @@
                 <!-- Progress -->
                 <div class="w-full max-w-xs">
                     <input type="range" class="w-full"
+                           style="height: 4px;"
                            min="0" max="@_duration" value="@_current"
                            @oninput="SeekOverlay" />
                     <div class="flex justify-between text-xs mt-1" style="color: var(--muted-foreground-3);">
@@ -244,9 +243,10 @@
     private string _currentTime = "0:00";
     private string _totalTime = "0:00";
     private string _progressPercent => _duration > 0 ? $"{(_current * 100.0 / _duration):F1}" : "0";
-    private DotNetObjectReference<PlayerBar>? _dotNetRef;
-    private bool _playCountScheduled;
+    private bool _jsReady;
     private int _playCountSongId;
+
+    private DotNetObjectReference<PlayerBar>? _dotNetRef;
 
     protected override void OnInitialized()
     {
@@ -254,19 +254,34 @@
         _dotNetRef = DotNetObjectReference.Create(this);
     }
 
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JSRuntime.InvokeVoidAsync("musicPlayer.init");
+            await JSRuntime.InvokeVoidAsync("musicPlayer.setDotNetRef", _dotNetRef);
+            _jsReady = true;
+        }
+    }
+
     private async void OnPlayerChange()
     {
-        _playCountScheduled = false;
         _liked = Player.CurrentSong?.IsLiked ?? false;
         StateHasChanged();
-        if (Player.IsPlaying && Player.CurrentSong != null)
+
+        if (Player.CurrentSong != null)
         {
             _playCountSongId = Player.CurrentSong.Id;
-            await JSRuntime.InvokeVoidAsync("musicPlayer.play", Player.CurrentSong.AudioUrl);
-            await JSRuntime.InvokeVoidAsync("musicPlayer.setOnEnded", _dotNetRef);
-            await JSRuntime.InvokeVoidAsync("musicPlayer.setOnTimeUpdate", _dotNetRef);
-            await JSRuntime.InvokeVoidAsync("musicPlayer.setOnCanPlay", _dotNetRef);
-            _ = SchedulePlayCount();
+
+            if (Player.IsPlaying)
+            {
+                await JSRuntime.InvokeVoidAsync("musicPlayer.play", Player.CurrentSong.AudioUrl);
+                _ = SchedulePlayCount();
+            }
+            else
+            {
+                await JSRuntime.InvokeVoidAsync("musicPlayer.pause");
+            }
         }
         else
         {
@@ -276,7 +291,22 @@
 
     private async Task SchedulePlayCount()
     {
-        await JSRuntime.InvokeVoidAsync("schedulePlayCount", _dotNetRef, _playCountSongId);
+        if (_dotNetRef != null)
+            await JSRuntime.InvokeVoidAsync("schedulePlayCount", _dotNetRef, _playCountSongId);
+    }
+
+    private void TogglePlay()
+    {
+        if (Player.IsPlaying)
+        {
+            Player.SetPlaying(false);
+            _ = JSRuntime.InvokeVoidAsync("musicPlayer.pause");
+        }
+        else
+        {
+            Player.SetPlaying(true);
+            _ = JSRuntime.InvokeVoidAsync("musicPlayer.resume");
+        }
     }
 
     [JSInvokable]
@@ -286,32 +316,23 @@
     }
 
     [JSInvokable]
-    public async void OnTimeUpdate(int seconds)
+    public void OnProgress(int currentSeconds, int totalSeconds)
     {
-        _current = seconds;
-        _currentTime = FormatDuration(seconds);
-        await InvokeAsync(StateHasChanged);
-    }
-
-    [JSInvokable]
-    public async void OnCanPlay(int totalSeconds)
-    {
+        _current = currentSeconds;
         _duration = totalSeconds;
+        _currentTime = FormatDuration(currentSeconds);
         _totalTime = FormatDuration(totalSeconds);
-        await InvokeAsync(StateHasChanged);
+        StateHasChanged();
     }
 
     [JSInvokable]
     public async Task OnPlayThreshold(int songId)
     {
-        if (songId == _playCountSongId && !_playCountScheduled)
+        if (songId == _playCountSongId)
         {
-            _playCountScheduled = true;
             await SongService.IncrementPlayCountAsync(songId);
         }
     }
-
-    private void TogglePlay() => Player.TogglePlay();
 
     private async Task Seek(ChangeEventArgs e)
     {
@@ -339,7 +360,7 @@
         var result = await SongService.ToggleLikeAsync(Player.CurrentSong.Id, CurrentUser.UserId.Value);
         if (!result.IsSuccess)
         {
-            _liked = !_liked; // revert on failure
+            _liked = !_liked;
             Toast.Show(ToastType.Error, result.Error ?? "Lỗi");
         }
         StateHasChanged();
@@ -348,8 +369,7 @@
     private async Task Share()
     {
         if (Player.CurrentSong == null) return;
-        await JSRuntime.InvokeVoidAsync("copyToClipboard",
-            $"/songs/{Player.CurrentSong.Id}");
+        await JSRuntime.InvokeVoidAsync("copyToClipboard", $"/songs/{Player.CurrentSong.Id}");
         Toast.Show(ToastType.Success, "Đã copy link!");
     }
 

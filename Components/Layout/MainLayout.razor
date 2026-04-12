@@ -129,11 +129,8 @@
 </div>
 
 
-<!-- Player Bar -->
-@if (PlayerService.CurrentSong != null)
-{
-	<PlayerBar />
-}
+<!-- Player Bar — always mounted so it stays in the circuit -->
+<PlayerBar />
 
 @code {
 	private bool _sidebarOpen;
@@ -141,11 +138,17 @@
 
 	protected override void OnInitialized()
 	{
+		PlayerService.OnChange += OnPlayerChanged; // re-render when singleton state changes
 		BuildNav();
 		if (!CurrentUser.IsAuthenticated)
 		{
 			Nav.NavigateTo("/login", forceLoad: false);
 		}
+	}
+
+	private void OnPlayerChanged()
+	{
+		InvokeAsync(StateHasChanged); // MainLayout re-renders → @if re-evaluated
 	}
 
 	private void BuildNav()
@@ -175,7 +178,10 @@
 		return string.IsNullOrEmpty(u) ? "?" : u.First().ToString().ToUpper();
 	}
 
-	public void Dispose() { }
+	public void Dispose()
+	{
+		PlayerService.OnChange -= OnPlayerChanged;
+	}
 
 	private record NavItem(string Href, string Label, string Icon, NavLinkMatch Match);
 

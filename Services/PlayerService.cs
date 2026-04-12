@@ -51,5 +51,8 @@ public class PlayerService : IPlayerService
         OnChange?.Invoke();
     }
 
+    /// <summary>Call this to re-sync state after a new circuit/instance is created.</summary>
+    public void CheckState() => OnChange?.Invoke();
+
     public event Action? OnChange;
 }

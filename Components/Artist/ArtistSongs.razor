@@ -113,11 +113,12 @@
             <div class="form-group mb-4">
                 <label class="label">File âm thanh</label>
                 <div class="upload-zone @(IsDraggingAudio ? "drag-over" : "")"
+                     style="position:relative;"
                      @ondragover:preventDefault @ondragover="() => IsDraggingAudio = true"
                      @ondragleave="() => IsDraggingAudio = false"
-                     @ondrop.prevent="HandleAudioDrop"
-                     @onclick="TriggerAudioClick">
-                    <InputFile id="audio-upload-input" OnChange="HandleAudioSelect" accept=".mp3,audio/mpeg" class="sr-only" />
+                     @ondrop.prevent="HandleAudioDrop">
+                    <InputFile id="audio-upload-input" OnChange="HandleAudioSelect" accept=".mp3,audio/mpeg"
+                               style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;z-index:10;" />
                     @if (!string.IsNullOrEmpty(_upAudioFileName))
                     {
                         <div class="flex items-center gap-3">
@@ -166,11 +167,13 @@
                             </button>
                         </div>
                     }
-                    <label class="upload-zone-sm @(IsDraggingCover ? "drag-over" : "") flex-1 cursor-pointer"
-                           @ondragover:preventDefault @ondragover="() => IsDraggingCover = true"
-                           @ondragleave="() => IsDraggingCover = false"
-                           @ondrop.prevent="HandleCoverDrop">
-                        <InputFile id="cover-upload-input" OnChange="HandleUpCoverSelect" accept=".jpg,.jpeg,.png,.webp" class="sr-only" />
+                    <div class="upload-zone-sm @(IsDraggingCover ? "drag-over" : "") flex-1"
+                         style="position:relative;"
+                         @ondragover:preventDefault @ondragover="() => IsDraggingCover = true"
+                         @ondragleave="() => IsDraggingCover = false"
+                         @ondrop.prevent="HandleCoverDrop">
+                        <InputFile id="cover-upload-input" OnChange="HandleUpCoverSelect" accept=".jpg,.jpeg,.png,.webp"
+                                   style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;z-index:10;" />
                         @if (_upCoverPreview != null)
                         {
                             <p class="text-xs text-center" style="color: var(--muted-foreground-2);">Đổi ảnh</p>
@@ -186,7 +189,7 @@
                                 <p class="text-xs" style="color: var(--muted-foreground-3);">JPG/PNG/WebP, tối đa 2MB</p>
                             </div>
                         }
-                    </label>
+                    </div>
                 </div>
             </div>
 
@@ -250,11 +253,13 @@
                             </button>
                         </div>
                     }
-                    <label class="upload-zone-sm @(IsDraggingEditCover ? "drag-over" : "") flex-1 cursor-pointer"
-                           @ondragover:preventDefault @ondragover="() => IsDraggingEditCover = true"
-                           @ondragleave="() => IsDraggingEditCover = false"
-                           @ondrop.prevent="HandleEditCoverDrop">
-                        <InputFile id="cover-edit-input" OnChange="HandleEditCover" accept=".jpg,.jpeg,.png,.webp" class="sr-only" />
+                    <div class="upload-zone-sm @(IsDraggingEditCover ? "drag-over" : "") flex-1"
+                         style="position:relative;"
+                         @ondragover:preventDefault @ondragover="() => IsDraggingEditCover = true"
+                         @ondragleave="() => IsDraggingEditCover = false"
+                         @ondrop.prevent="HandleEditCoverDrop">
+                        <InputFile id="cover-edit-input" OnChange="HandleEditCover" accept=".jpg,.jpeg,.png,.webp"
+                                   style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;z-index:10;" />
                         @if (_editCoverUrl != null)
                         {
                             <p class="text-xs text-center" style="color: var(--muted-foreground-2);">Đổi ảnh</p>
@@ -270,7 +275,7 @@
                                 <p class="text-xs" style="color: var(--muted-foreground-3);">JPG/PNG/WebP, tối đa 2MB</p>
                             </div>
                         }
-                    </label>
+                    </div>
                 </div>
             </div>
 
@@ -391,8 +396,6 @@
         { _upAudioUrl = upload.Data!.Url; _upAudioFileName = dropFile.Name; _upAudioFileSize = bytes.Length; Toast.Show(ToastType.Success, "Upload âm thanh thành công!"); }
         else { _upAudioError = upload.Error; Toast.Show(ToastType.Error, upload.Error ?? "Upload thất bại."); }
     }
-
-    private void TriggerAudioClick() => JSRuntime.InvokeVoidAsync("triggerInputFile", "audio-upload-input");
 
     private async Task HandleUpCoverSelect(InputFileChangeEventArgs e) => await ProcessUpCover(e.File);
 

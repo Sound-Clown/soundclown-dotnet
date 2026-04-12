@@ -15,5 +15,6 @@ public interface IPlayerService
     void Prev();
     void TogglePlay();
     void SetPlaying(bool playing);
+    void CheckState();
     event Action? OnChange;
 }

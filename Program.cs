@@ -67,7 +67,7 @@ builder.Services.AddScoped<ISongService, SongService>();
 builder.Services.AddScoped<IAlbumService, AlbumService>();
 builder.Services.AddScoped<IAdminService, AdminService>();
 builder.Services.AddScoped<IUploadService, UploadService>();
-builder.Services.AddScoped<IPlayerService, PlayerService>();
+builder.Services.AddSingleton<IPlayerService, PlayerService>();
 builder.Services.AddScoped<IToastService, ToastService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 
