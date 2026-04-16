@@ -66,10 +66,17 @@ public class AuthController : Controller
     }
 
     [HttpPost("login")]
-    public async Task<IActionResult> Login([FromBody] LoginDto? dto)
+    public async Task<IActionResult> Login()
     {
         // If called with JSON body (API/Postman), return JSON token
         // If called with form data (browser), set cookie + redirect
+        LoginDto? dto = null;
+        if (Request.HasJsonContentType())
+        {
+            try { dto = await Request.ReadFromJsonAsync<LoginDto>(); }
+            catch { return BadRequest(new { error = "Invalid JSON body." }); }
+        }
+
         if (dto != null)
         {
             // JSON request — API caller (Postman / mobile)

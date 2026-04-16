@@ -1,4 +1,5 @@
 using DotNetEnv;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
 using MusicApp.Data;
 using MusicApp.Services;
@@ -46,7 +47,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")!));
 
 // ── Authentication ────────────────────────────────────────────────────────
-builder.Services.AddAuthentication()
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
         var auth = builder.Configuration.GetSection("Auth");
