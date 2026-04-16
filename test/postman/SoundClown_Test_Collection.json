@@ -1,0 +1,609 @@
+{
+  "info": {
+    "name": "SoundClown - Test Collection",
+    "description": "Postman collection cho 8 testcase TC-03, TC-04, TC-05, TC-11, TC-12, TC-15, TC-16, TC-20. Sau khi import, chạy folder SETUP trước để lấy token và IDs.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000",
+      "type": "string"
+    },
+    {
+      "key": "tokenListener",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tokenArtist",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tokenAdmin",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "songId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "albumId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "listenerId",
+      "value": "2",
+      "type": "string"
+    },
+    {
+      "key": "artistId",
+      "value": "3",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "=== 0. SETUP ===",
+      "item": [
+        {
+          "name": "[A] Login Listener",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.token) {",
+                  "    pm.collectionVariables.set('tokenListener', json.token);",
+                  "    pm.collectionVariables.set('listenerId', json.user.id.toString());",
+                  "    pm.test('Đăng nhập thành công - token có giá trị', json.token && json.token.length > 20);",
+                  "    console.log('listenerId:', json.user.id);",
+                  "} else {",
+                  "    pm.test('FAIL - Không có token. Kiểm tra app đang chạy.', false);",
+                  "    console.log('Response:', pm.response.text());",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"identifier\": \"listener@demo.com\",\n    \"password\": \"Listener123!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "protocol": "http",
+              "host": ["localhost:5000"],
+              "path": ["auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "[B] Login Artist",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.token) {",
+                  "    pm.collectionVariables.set('tokenArtist', json.token);",
+                  "    pm.collectionVariables.set('artistId', json.user.id.toString());",
+                  "    console.log('artistId:', json.user.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"identifier\": \"artist@demo.com\",\n    \"password\": \"Artist123!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "protocol": "http",
+              "host": ["localhost:5000"],
+              "path": ["auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "[C] Login Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.token) {",
+                  "    pm.collectionVariables.set('tokenAdmin', json.token);",
+                  "    console.log('adminId:', json.user.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"identifier\": \"admin@music.com\",\n    \"password\": \"Admin123456!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "protocol": "http",
+              "host": ["localhost:5000"],
+              "path": ["auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "[D] Get Songs (lấy songId — cần có bài Approved)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.items && json.items.length > 0) {",
+                  "    var first = json.items[0];",
+                  "    pm.collectionVariables.set('songId', first.id.toString());",
+                  "    pm.test('Có bài Approved: id=' + first.id, true);",
+                  "    console.log('First song:', first.id, '-', first.title);",
+                  "} else {",
+                  "    pm.test('CHÚ Ý: Không có bài Approved — upload bài trước (TC-01) rồi chạy lại [D]', json.items && json.items.length > 0);",
+                  "    console.log('Response:', JSON.stringify(json));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{tokenListener}}", "type": "string" }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/songs?page=1&pageSize=5",
+              "protocol": "http",
+              "host": ["localhost:5000"],
+              "path": ["api", "songs"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "pageSize", "value": "5" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "[E] Get Albums của Artist (lấy albumId)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (Array.isArray(json) && json.length > 0) {",
+                  "    pm.collectionVariables.set('albumId', json[0].id.toString());",
+                  "    console.log('albumId:', json[0].id);",
+                  "} else {",
+                  "    pm.collectionVariables.set('albumId', '1');",
+                  "    console.warn('Không có album — TC-20 cần tạo album trước ở giao diện');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{tokenArtist}}", "type": "string" }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/albums",
+              "protocol": "http",
+              "host": ["localhost:5000"],
+              "path": ["api", "albums"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "=== 1. LIKE / UNLIKE — TC-03, TC-04 ===",
+      "item": [
+        {
+          "name": "TC-03 Like (nhánh Insert) ✅",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('HTTP 200', pm.response.code === 200);",
+                  "pm.test('isLiked = true', pm.response.json().isLiked === true);",
+                  "pm.test('Có likeCount', typeof pm.response.json().likeCount === 'number');",
+                  "pm.test('Content-Type: application/json', pm.response.headers.has('Content-Type'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/songs/{{songId}}/like",
+              "protocol": "http",
+              "host": ["localhost:5000"],
+              "path": ["api", "songs", "{{songId}}", "like"]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{tokenAdmin}}", "type": "string" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "TC-04 Unlike (nhánh Delete) ✅",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('HTTP 200', pm.response.code === 200);",
+                  "pm.test('isLiked = false', pm.response.json().isLiked === false);",
+                  "pm.test('likeCount giảm 1', typeof pm.response.json().likeCount === 'number');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/songs/{{songId}}/like",
+              "protocol": "http",
+              "host": ["localhost:5000"],
+              "path": ["api", "songs", "{{songId}}", "like"]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{tokenAdmin}}", "type": "string" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "=== 2. ADMIN REVIEW — TC-05, TC-11, TC-12 ===",
+      "item": [
+        {
+          "name": "TC-05 Listener gọi API Admin → 403 ❌",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('HTTP 403 Forbidden', pm.response.code === 403);",
+                  "pm.test('Có error message', pm.response.json().error !== undefined);",
+                  "console.log('Response:', pm.response.text());"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"action\":\"approve\"}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/songs/1/review",
+              "protocol": "http",
+              "host": ["localhost:5000"],
+              "path": ["api", "admin", "songs", "1", "review"]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{tokenListener}}", "type": "string" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "TC-05 Artist gọi API Admin → 403 ❌",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('HTTP 403 Forbidden', pm.response.code === 403);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"action\":\"approve\"}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/songs/1/review",
+              "protocol": "http",
+              "host": ["localhost:5000"],
+              "path": ["api", "admin", "songs", "1", "review"]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{tokenArtist}}", "type": "string" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "TC-11 Review Approve (nhánh approve) ✅",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('HTTP 200 OK', pm.response.code === 200);",
+                  "pm.test('action = approve', pm.response.json().action === 'approve');",
+                  "pm.test('Có message', pm.response.json().message !== undefined);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"action\":\"approve\",\"rejectReason\":null}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/songs/2/review",
+              "protocol": "http",
+              "host": ["localhost:5000"],
+              "path": ["api", "admin", "songs", "2", "review"]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{tokenAdmin}}", "type": "string" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "TC-12 Review Reject (nhánh reject) ✅",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('HTTP 200 OK', pm.response.code === 200);",
+                  "pm.test('action = reject', pm.response.json().action === 'reject');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"action\":\"reject\",\"rejectReason\":\"Chất lượng audio kém\"}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/songs/3/review",
+              "protocol": "http",
+              "host": ["localhost:5000"],
+              "path": ["api", "admin", "songs", "3", "review"]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{tokenAdmin}}", "type": "string" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "=== 3. LOCK USER — TC-14, TC-15 ===",
+      "item": [
+        {
+          "name": "TC-14 Admin tự khóa mình → Lỗi ❌",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('HTTP 400 hoặc 403', pm.response.code === 400 || pm.response.code === 403);",
+                  "pm.test('Có error message', pm.response.json().error !== undefined);",
+                  "pm.test('Lỗi chứa \"chính mình\"',",
+                  "    pm.response.json().error.includes('chính mình'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/users/1/toggle-lock",
+              "protocol": "http",
+              "host": ["localhost:5000"],
+              "path": ["api", "admin", "users", "1", "toggle-lock"]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{tokenAdmin}}", "type": "string" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "TC-15 ToggleLock hợp lệ (Admin khóa user khác) ✅",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('HTTP 200 OK', pm.response.code === 200);",
+                  "pm.test('Có message', pm.response.json().message !== undefined);",
+                  "pm.test('Có isActive field', pm.response.json().isActive !== undefined);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/users/2/toggle-lock",
+              "protocol": "http",
+              "host": ["localhost:5000"],
+              "path": ["api", "admin", "users", "2", "toggle-lock"]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{tokenAdmin}}", "type": "string" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "=== 4. SECURITY — TC-16, TC-20 ===",
+      "item": [
+        {
+          "name": "TC-16 Listener sửa bài Artist → 403 ❌",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('HTTP 403', pm.response.code === 403);",
+                  "pm.test('Có error message', pm.response.json().error !== undefined);",
+                  "console.log('Error:', pm.response.json().error);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"title\":\"Hacked Title\"}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/songs/{{songId}}",
+              "protocol": "http",
+              "host": ["localhost:5000"],
+              "path": ["api", "songs", "{{songId}}"]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{tokenListener}}", "type": "string" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "TC-20 Artist thêm bài người khác vào album ❌",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('HTTP 400 Bad Request', pm.response.code === 400);",
+                  "pm.test('Có error message', pm.response.json().error !== undefined);",
+                  "pm.test('Lỗi chứa \"không hợp lệ\"',",
+                  "    pm.response.json().error.includes('không hợp lệ'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"songId\": {{songId}}}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/albums/{{albumId}}/songs",
+              "protocol": "http",
+              "host": ["localhost:5000"],
+              "path": ["api", "albums", "{{albumId}}", "songs"]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{tokenArtist}}", "type": "string" }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

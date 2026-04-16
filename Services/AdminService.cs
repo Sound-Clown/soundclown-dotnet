@@ -8,11 +8,21 @@ namespace MusicApp.Services;
 public class AdminService : IAdminService
 {
     private readonly AppDbContext _db;
+    private readonly ICurrentUserService _currentUser;
 
-    public AdminService(AppDbContext db) => _db = db;
+    public AdminService(AppDbContext db, ICurrentUserService currentUser)
+    {
+        _db = db;
+        _currentUser = currentUser;
+    }
+
+    private bool IsAdmin() => _currentUser.Role == Role.Admin;
 
     public async Task<ServiceResult<List<SongDto>>> GetPendingSongsAsync()
     {
+        if (!IsAdmin())
+            return ServiceResult<List<SongDto>>.Fail("Không có quyền truy cập.");
+
         var songs = await _db.Songs
             .AsNoTracking()
             .Where(s => s.Status == SongStatus.Pending)
@@ -32,6 +42,9 @@ public class AdminService : IAdminService
 
     public async Task<ServiceResult> ReviewSongAsync(int songId, ReviewSongDto dto)
     {
+        if (!IsAdmin())
+            return ServiceResult.Fail("Không có quyền thực hiện thao tác này.");
+
         var song = await _db.Songs.FindAsync(songId);
         if (song == null)
             return ServiceResult.Fail("Không tìm thấy bài hát.");

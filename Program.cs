@@ -46,17 +46,32 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")!));
 
 // ── Authentication ────────────────────────────────────────────────────────
-builder.Services.AddAuthentication().AddCookie(options =>
-{
-    var auth = builder.Configuration.GetSection("Auth");
-    options.Cookie.Name = auth["CookieName"] ?? "music_auth";
-    options.Cookie.HttpOnly = true;
-    options.Cookie.SameSite = SameSiteMode.Strict;
-    options.ExpireTimeSpan = TimeSpan.FromDays(
-        int.Parse(auth["ExpireDays"] ?? "7"));
-    options.LoginPath = "/login";
-    options.AccessDeniedPath = "/login";
-});
+builder.Services.AddAuthentication()
+    .AddCookie(options =>
+    {
+        var auth = builder.Configuration.GetSection("Auth");
+        options.Cookie.Name = auth["CookieName"] ?? "music_auth";
+        options.Cookie.HttpOnly = true;
+        options.Cookie.SameSite = SameSiteMode.Strict;
+        options.ExpireTimeSpan = TimeSpan.FromDays(
+            int.Parse(auth["ExpireDays"] ?? "7"));
+        options.LoginPath = "/login";
+        options.AccessDeniedPath = "/login";
+    })
+    .AddJwtBearer(options =>
+    {
+        var jwt = builder.Configuration.GetSection("Auth:Jwt");
+        var key = jwt["SecretKey"] ?? "SoundClown-TestSecretKey-Minimum32Chars!";
+        options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
+        {
+            ValidateIssuer = false,
+            ValidateAudience = false,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new Microsoft.IdentityModel.Tokens.SymmetricSecurityKey(
+                System.Text.Encoding.UTF8.GetBytes(key))
+        };
+    });
 builder.Services.AddAuthorization();
 
 // ── Services ───────────────────────────────────────────────────────────────
