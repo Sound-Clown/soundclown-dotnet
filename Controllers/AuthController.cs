@@ -133,6 +133,10 @@ public class AuthController : Controller
     public async Task<IActionResult> Logout()
     {
         await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-        return Ok(new { message = "Đã đăng xuất." });
+
+        if (Request.HasJsonContentType() || Request.Headers.Accept.ToString().Contains("application/json"))
+            return Ok(new { message = "Đã đăng xuất." });
+
+        return Redirect("/login");
     }
 }

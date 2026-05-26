@@ -4,30 +4,25 @@
 @inject IPlayerService PlayerService
 @inject NavigationManager Nav
 
-@if (!CurrentUser.IsAuthenticated)
-{
-    @* Redirect handled in OnInitialized below *@
-}
-
 <div class="flex h-screen overflow-hidden" style="background: var(--background);">
 
 	<!-- Mobile overlay backdrop -->
 	@if (_sidebarOpen)
 	{
-		<div class="fixed inset-0 bg-black/70 z-40 md:hidden" @onclick="() => _sidebarOpen = false"></div>
+		<div class="sc-sidebar-backdrop fixed inset-0 bg-black/70 z-40 md:hidden" @onclick="() => _sidebarOpen = false"></div>
 	}
 
 	<!-- Sidebar -->
-	<aside class="@(_sidebarOpen ? "translate-x-0" : "-translate-x-full")
-				fixed md:static top-0 left-0 h-full w-60 z-50 flex flex-col
-				transition-transform duration-300 ease-in-out
-				border-r" style="background: var(--background); border-color: var(--border);">
+	<aside class="sc-sidebar @(_sidebarOpen ? "is-open" : "")">
 
 		<!-- Logo -->
 		<div class="flex items-center gap-3 px-5 h-16 border-b flex-shrink-0" style="border-color: var(--border);">
-			<img src="images/logo.png" alt="Logo" class="w-9 h-9 rounded-xl object-cover flex-shrink-0"
-				 style="box-shadow: 0 0 16px rgba(245, 166, 35, 0.3);"
-				 onerror="this.style.display='none'" />
+			<div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+				 style="background: var(--surface-2); box-shadow: 0 0 16px rgba(245, 166, 35, 0.3);">
+				<img src="images/logo.png" alt="Logo" class="w-9 h-9 rounded-xl object-cover"
+					 onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';" />
+				<span style="display:none; color: var(--accent); font-weight: 700;">S</span>
+			</div>
 			<span class="font-semibold text-sm tracking-tight" style="color: var(--foreground);">SoundClown</span>
 		</div>
 
@@ -35,7 +30,8 @@
 		<nav class="flex-1 overflow-y-auto px-3 pt-4 pb-2 space-y-0.5">
 			@foreach (var item in _navItems)
 			{
-				<NavLink href="@item.Href" class="nav-item" ActiveClass="nav-item-active" Match="@item.Match">
+				<NavLink href="@item.Href" class="nav-item" ActiveClass="nav-item-active" Match="@item.Match"
+						 @onclick="CloseSidebarMobile">
 					@((MarkupString)item.Icon)
 					<span>@item.Label</span>
 				</NavLink>
@@ -47,14 +43,14 @@
 					<p class="px-3 mb-2 text-xs font-semibold uppercase tracking-wider" style="color: var(--muted-foreground-3);">
 						Quản trị
 					</p>
-					<NavLink href="/admin/songs" class="nav-item" ActiveClass="nav-item-active">
+					<NavLink href="/admin/songs" class="nav-item" ActiveClass="nav-item-active" @onclick="CloseSidebarMobile">
 						<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
 							<path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/>
 							<rect x="9" y="3" width="6" height="4" rx="1"/>
 						</svg>
 						<span>Duyệt bài</span>
 					</NavLink>
-					<NavLink href="/admin/users" class="nav-item" ActiveClass="nav-item-active">
+					<NavLink href="/admin/users" class="nav-item" ActiveClass="nav-item-active" @onclick="CloseSidebarMobile">
 						<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
 							<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
 							<circle cx="9" cy="7" r="4"/>
@@ -104,7 +100,7 @@
 	<!-- Main area -->
 	<div class="flex-1 flex flex-col min-w-0 overflow-hidden">
 		<!-- Mobile header -->
-		<header class="flex items-center justify-between h-14 px-4 border-b md:hidden"
+		<header class="sc-mobile-header items-center justify-between h-14 px-4 border-b md:hidden"
 				style="border-color: var(--border);">
 			<button @onclick="() => _sidebarOpen = true" class="p-2 hover:bg-white/5 rounded-lg">
 				<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -138,17 +134,18 @@
 
 	protected override void OnInitialized()
 	{
-		PlayerService.OnChange += OnPlayerChanged; // re-render when singleton state changes
+		PlayerService.OnChange += OnPlayerChanged;
 		BuildNav();
-		if (!CurrentUser.IsAuthenticated)
-		{
-			Nav.NavigateTo("/login", forceLoad: false);
-		}
 	}
 
 	private void OnPlayerChanged()
 	{
-		InvokeAsync(StateHasChanged); // MainLayout re-renders → @if re-evaluated
+		InvokeAsync(StateHasChanged);
+	}
+
+	private void CloseSidebarMobile()
+	{
+		if (_sidebarOpen) _sidebarOpen = false;
 	}
 
 	private void BuildNav()
@@ -164,6 +161,7 @@
 		{
 			_navItems.AddRange(new[]
 			{
+				new NavItem("/artist/upload", "Upload", Icons.Upload, NavLinkMatch.Prefix),
 				new NavItem("/artist/songs", "Bài của tôi", Icons.ListMusic, NavLinkMatch.Prefix),
 				new NavItem("/artist/albums", "Album", Icons.Disc, NavLinkMatch.Prefix),
 				new NavItem("/artist/stats", "Thống kê", Icons.BarChart, NavLinkMatch.Prefix),

@@ -1,5 +1,5 @@
 @page "/albums/{Id:int}"
-@rendermode InteractiveServer
+@attribute [Authorize]
 @inject IAlbumService AlbumService
 @inject ISongService SongService
 @inject IPlayerService PlayerService
@@ -116,8 +116,10 @@
             if (idx >= 0)
             {
                 _album.Songs[idx] = song with { IsLiked = result.Data.Liked, LikeCount = result.Data.NewCount };
-                StateHasChanged();
             }
+            if (PlayerService.CurrentSong?.Id == song.Id)
+                PlayerService.UpdateCurrentSongLike(result.Data.Liked, result.Data.NewCount);
+            StateHasChanged();
         }
     }
 }

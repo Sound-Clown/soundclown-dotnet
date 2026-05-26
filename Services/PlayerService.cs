@@ -54,5 +54,14 @@ public class PlayerService : IPlayerService
     /// <summary>Call this to re-sync state after a new circuit/instance is created.</summary>
     public void CheckState() => OnChange?.Invoke();
 
+    public void UpdateCurrentSongLike(bool liked, int likeCount)
+    {
+        for (int i = 0; i < Queue.Count; i++)
+        {
+            if (i == CurrentIndex || (CurrentSong != null && Queue[i].Id == CurrentSong.Id))
+                Queue[i] = Queue[i] with { IsLiked = liked, LikeCount = likeCount };
+        }
+    }
+
     public event Action? OnChange;
 }

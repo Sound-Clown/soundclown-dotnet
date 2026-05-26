@@ -1,6 +1,6 @@
 @page "/settings"
-@rendermode InteractiveServer
 @page "/change-password"
+@attribute [Authorize]
 @inject IAuthService AuthService
 @inject ICurrentUserService CurrentUser
 @inject NavigationManager Nav
@@ -63,7 +63,7 @@
             }
 
             <button type="submit" class="btn-primary" disabled="@_loading">
-                @if (_loading) { <span class="w-4 h-4 border-2 border-t-black rounded-full animate-spin"></span> }
+                @if (_loading) { <span class="inline-block w-4 h-4 border-2 border-t-black rounded-full animate-spin"></span> }
                 Đổi mật khẩu
             </button>
         </form>

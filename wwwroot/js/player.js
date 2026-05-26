@@ -1,6 +1,7 @@
 globalThis.musicPlayer = {
   audio: new Audio(),
   _dotnetRef: null,
+  _currentUrl: null,
 
   init() {
     this.audio.ontimeupdate = () => {
@@ -22,12 +23,16 @@ globalThis.musicPlayer = {
   },
 
   play(url) {
-    this.audio.src = url;
+    if (this._currentUrl !== url) {
+      this._currentUrl = url;
+      this.audio.src = url;
+    }
     this.audio.play();
   },
   pause() { this.audio.pause(); },
   resume() { this.audio.play(); },
   seek(time) { this.audio.currentTime = time; },
+  setVolume(v) { this.audio.volume = Math.max(0, Math.min(1, Number(v))); },
   getCurrentTime() { return Math.floor(this.audio.currentTime); },
   getDuration() { return Number.isNaN(this.audio.duration) ? 0 : Math.floor(this.audio.duration); }
 };

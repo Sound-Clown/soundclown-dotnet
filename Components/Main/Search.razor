@@ -1,5 +1,6 @@
 @page "/search"
-@rendermode InteractiveServer
+@attribute [Authorize]
+@implements IDisposable
 @inject ISongService SongService
 @inject IPlayerService PlayerService
 @inject ICurrentUserService CurrentUser
@@ -16,7 +17,8 @@
         </svg>
         <input class="input" style="padding-left: 2.25rem;"
                placeholder="Tìm bài hát, nghệ sĩ..."
-               @bind="_query" @bind:event="oninput" />
+               value="@_query"
+               @oninput="OnInput" />
     </div>
 
     @if (_loading)
@@ -129,7 +131,23 @@
     {
         if (!CurrentUser.UserId.HasValue) return;
         var result = await SongService.ToggleLikeAsync(song.Id, CurrentUser.UserId.Value);
-        if (result.IsSuccess) StateHasChanged();
+        if (result.IsSuccess && result.Data != null)
+        {
+            var idx = _songs.FindIndex(s => s.Id == song.Id);
+            if (idx >= 0)
+                _songs[idx] = _songs[idx] with { IsLiked = result.Data.Liked, LikeCount = result.Data.NewCount };
+            StateHasChanged();
+        }
         else Toast.Show(ToastType.Error, result.Error ?? "Lỗi");
+    }
+
+    public void Dispose()
+    {
+        if (_debounce != null)
+        {
+            _debounce.Stop();
+            _debounce.Dispose();
+            _debounce = null;
+        }
     }
 }

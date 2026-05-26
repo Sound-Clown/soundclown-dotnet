@@ -6,15 +6,15 @@ Music streaming app — Blazor Server + PostgreSQL + Cloudinary.
 
 ## Tech Stack
 
-| Layer | Technology |
-|---|---|
-| Framework | ASP.NET Core 8 (Blazor Server, interactive SSR) |
-| Database | PostgreSQL 16 via EF Core + Npgsql |
-| Auth | Cookie-based, BCrypt (cost 12) |
-| Media | Cloudinary .NET SDK (audio + image upload) |
-| Email | MailKit SMTP (reset-password flow) |
-| CSS | Tailwind CDN + custom dark theme (`app.css`, accent `#F5A623`) |
-| Audio | `HTMLAudioElement` via JS Interop (`wwwroot/js/player.js`) |
+| Layer     | Technology                                                     |
+| --------- | -------------------------------------------------------------- |
+| Framework | ASP.NET Core 8 (Blazor Server, interactive SSR)                |
+| Database  | PostgreSQL 16 via EF Core + Npgsql                             |
+| Auth      | Cookie-based, BCrypt (cost 12)                                 |
+| Media     | Cloudinary .NET SDK (audio + image upload)                     |
+| Email     | MailKit SMTP (reset-password flow)                             |
+| CSS       | Tailwind CDN + custom dark theme (`app.css`, accent `#F5A623`) |
+| Audio     | `HTMLAudioElement` via JS Interop (`wwwroot/js/player.js`)     |
 
 ---
 
@@ -124,6 +124,7 @@ soundclown-mvp/
 ## Features
 
 ### Authentication & Authorization
+
 - Cookie-based login (7-day expiry)
 - 3 roles: **Listener**, **Artist**, **Admin**
 - Password strength meter (≥8 chars: checks length, mixed case, digits, special chars)
@@ -131,25 +132,30 @@ soundclown-mvp/
 - Role-based sidebar nav (Listeners see Home; Artists see extra menu items)
 
 ### Song Lifecycle
+
 1. **Artist** uploads audio + optional cover → song status `Pending`
 2. **Admin** reviews → `Approved` (public) or `Rejected` (with optional reason)
 3. Artist edits song → status resets to `Pending`
 
 ### Playback
+
 - HTML5 `<audio>` via JS Interop (no page reload)
 - Queue system: play individual, play all, play from album/search
 - Play count increments after 30s of audio play (JS timer → Blazor `OnPlayThreshold`)
 - Like toggle with real-time count update
 
 ### Search
+
 - Debounced search on home page (300ms)
 - Full-text search by song title, artist name
 
 ### Admin Panel
+
 - Review pending songs: approve / reject with reason
 - Manage users: lock / unlock account
 
 ### Artist Dashboard
+
 - Upload songs (audio MP3 ≤10MB, cover JPG/PNG/WebP ≤2MB)
 - Manage own songs: edit title/cover/album, delete
 - Album management: create, edit, add/remove songs
@@ -231,8 +237,8 @@ dotnet run --urls "http://localhost:5000"   # app re-creates tables on startup
 ## Default Accounts
 
 | Role     | Email                | Password       |
-|----------|----------------------|----------------|
-| Admin    | `admin@music.com`    | `Admin123456!`  |
+| -------- | -------------------- | -------------- |
+| Admin    | `admin@music.com`    | `Admin123456!` |
 | Listener | `listener@music.com` | `Listener123!` |
 | Artist   | `artist@music.com`   | `Artist123!`   |
 
