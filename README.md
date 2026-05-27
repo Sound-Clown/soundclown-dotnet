@@ -270,11 +270,11 @@ Song status after upload: `Pending` → Admin approves → `Approved` (visible t
 
 Đề tài có **41 testcase** tổng cộng:
 
-| Loại | Số lượng | Công cụ |
-|------|---------:|---------|
-| Manual (browser + Postman) | 20 | Trình duyệt + Postman |
-| Unit test (tự động) | 16 | xUnit + EF Core InMemory + Coverlet |
-| E2E test (tự động) | 5 | Playwright .NET + Chromium headless |
+| Loại                       | Số lượng | Công cụ                             |
+| -------------------------- | -------: | ----------------------------------- |
+| Manual (browser + Postman) |       20 | Trình duyệt + Postman               |
+| Unit test (tự động)        |       16 | xUnit + EF Core InMemory + Coverlet |
+| E2E test (tự động)         |        5 | Playwright .NET + Chromium headless |
 
 📖 **Hướng dẫn chạy test đầy đủ** → [tests/README.md](tests/README.md)
 
