@@ -110,13 +110,21 @@ soundclown-mvp/
 │   ├── IToastService.cs / ToastService.cs          # Toast events (Success/Error/Info/Warning → JS showToast)
 │   └── IEmailService.cs / EmailService.cs         # MailKit: SendResetPasswordEmailAsync
 │
-└── wwwroot/
-    ├── app.css                          # Bootstrap import + custom CSS
-    ├── bootstrap/bootstrap.min.css      # Bootstrap 5.3 base
-    ├── css/app.css                      # Dark theme variables, utilities, components
-    └── js/
-        ├── player.js                    # globalThis.musicPlayer + schedulePlayCount (30s JS timer)
-        └── helpers.js                   # copyToClipboard, scrollToTop, readDropFile, showToast
+├── wwwroot/
+│   ├── app.css                          # Bootstrap import + custom CSS
+│   ├── bootstrap/bootstrap.min.css      # Bootstrap 5.3 base
+│   ├── css/app.css                      # Dark theme variables, utilities, components
+│   └── js/
+│       ├── player.js                    # globalThis.musicPlayer + schedulePlayCount (30s JS timer)
+│       └── helpers.js                   # copyToClipboard, scrollToTop, readDropFile, showToast
+│
+└── tests/                              # 41 testcase tổng cộng (20 manual + 16 unit + 5 E2E)
+    ├── README.md                       # ⭐ Hướng dẫn chạy test — start here
+    ├── MANUAL_TESTS.md                 # 20 testcase thủ công (browser + Postman) chi tiết
+    ├── postman/                        # Postman collection cho API test
+    ├── fixtures/                       # Script sinh file MP3 test
+    ├── SoundClown.UnitTests/           # xUnit + EF Core InMemory + Coverlet
+    └── SoundClown.E2ETests/            # Playwright + Chromium headless
 ```
 
 ---
@@ -255,3 +263,31 @@ Admin           → Approve / Reject pending songs, lock/unlock users
 ```
 
 Song status after upload: `Pending` → Admin approves → `Approved` (visible to all). Artist edits song → resets to `Pending`.
+
+---
+
+## Testing
+
+Đề tài có **41 testcase** tổng cộng:
+
+| Loại | Số lượng | Công cụ |
+|------|---------:|---------|
+| Manual (browser + Postman) | 20 | Trình duyệt + Postman |
+| Unit test (tự động) | 16 | xUnit + EF Core InMemory + Coverlet |
+| E2E test (tự động) | 5 | Playwright .NET + Chromium headless |
+
+📖 **Hướng dẫn chạy test đầy đủ** → [tests/README.md](tests/README.md)
+
+Quick run các test tự động:
+
+```bash
+# Unit test (cô lập, không cần app chạy)
+dotnet test tests/SoundClown.UnitTests
+
+# E2E (cần app + Postgres chạy ở localhost:5000)
+docker compose up -d
+dotnet run --urls "http://localhost:5000" &
+dotnet test tests/SoundClown.E2ETests
+```
+
+Manual test 20 TC chi tiết kèm ảnh evidence → [tests/MANUAL_TESTS.md](tests/MANUAL_TESTS.md).

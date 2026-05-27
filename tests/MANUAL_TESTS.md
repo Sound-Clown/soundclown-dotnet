@@ -8,11 +8,11 @@
 
 ## 📋 Tổng Quan Testcase
 
-| Tool | Số lượng | Testcase |
-|------|----------|----------|
-| 🖥️ Trình duyệt (thủ công) | 12 | TC-01,02,06,07,10,13,14,17,18,19 + TC-08,09 (timing) |
-| 📮 Postman (API) | 8 | TC-03,04,05,11,12,15,16,20 |
-| **Tổng** | **20** | |
+| Tool                      | Số lượng | Testcase                                             |
+| ------------------------- | -------- | ---------------------------------------------------- |
+| 🖥️ Trình duyệt (thủ công) | 12       | TC-01,02,06,07,10,13,14,17,18,19 + TC-08,09 (timing) |
+| 📮 Postman (API)          | 8        | TC-03,04,05,11,12,15,16,20                           |
+| **Tổng**                  | **20**   |                                                      |
 
 ---
 
@@ -36,7 +36,7 @@
 
 **Tài khoản**: `artist@demo.com` / `Artist123!`
 
-**File test**: `test/files/sample_5mb.mp3` (đã chuẩn bị sẵn)
+**File test**: `tests/fixtures/files/sample_5mb.mp3` (đã chuẩn bị sẵn)
 
 **Các bước**:
 
@@ -44,11 +44,12 @@
 2. Vào **/artist/upload**
 3. Nhập Title: `Giấc Mơ Mùa Hè`
 4. Drop hoặc chọn file `sample_5mb.mp3` vào vùng upload audio
-5. *(Tùy chọn)* Upload ảnh bìa `test/files/sample_cover.jpg`
+5. _(Tùy chọn)_ Upload ảnh bìa `tests/fixtures/files/sample_cover.jpg`
 6. Nhấn **Upload bài hát**
 7. Quan sát toast thành công
 
 **Kết quả mong đợi**:
+
 - Toast: "Upload thành công! Bài hát đang chờ duyệt."
 - Sang **/artist/songs** thấy bài mới với badge **Pending** (màu vàng)
 
@@ -60,7 +61,7 @@
 
 **Loại**: Black-box, Negative, Validation
 
-**File test**: `test/files/malicious.exe` (file .exe đã đổi tên thành `malicious.mp3`)
+**File test**: `tests/fixtures/files/malicious.exe` (file .exe đã đổi tên thành `malicious.mp3`)
 
 **Các bước**:
 
@@ -79,7 +80,7 @@
 
 **Loại**: Boundary Testing
 
-**File test**: `test/files/exact_10mb.mp3` (file chính xác 10,485,760 bytes)
+**File test**: `tests/fixtures/files/exact_10mb.mp3` (file chính xác 10,485,760 bytes)
 
 **Các bước**:
 
@@ -98,7 +99,7 @@
 
 **Loại**: Boundary Testing
 
-**File test**: `test/files/over_10mb.mp3` (~10.5MB)
+**File test**: `tests/fixtures/files/over_10mb.mp3` (~10.5MB)
 
 **Các bước**:
 
@@ -233,6 +234,7 @@
 4. Vào **/artist/stats** (nếu là artist) HOẶC kiểm tra trong database
 
 **Verify DB**:
+
 ```sql
 -- Xem play_count trước
 SELECT id, title, play_count FROM songs WHERE id = <songId>;
@@ -278,7 +280,7 @@ https://www.postman.com/downloads/
 
 1. Mở Postman
 2. Nhấn **Import** (góc trên trái)
-3. Kéo file `test/postman/SoundClown_Test_Collection.json` vào
+3. Kéo file `tests/postman/SoundClown_Test_Collection.json` vào
 4. Collection **"SoundClown - Test Collection"** xuất hiện trong sidebar
 
 ### Bước 3 — Tạo Environment
@@ -287,14 +289,14 @@ https://www.postman.com/downloads/
 2. Nhấn **Add**
 3. Điền:
 
-| Variable | Initial Value | Current Value |
-|----------|-------------|---------------|
-| `baseUrl` | `http://localhost:5000` | `http://localhost:5000` |
-| `tokenListener` | *(trống)* | *(trống)* |
-| `tokenArtist` | *(trống)* | *(trống)* |
-| `tokenAdmin` | *(trống)* | *(trống)* |
-| `songId` | *(trống)* | *(trống)* |
-| `albumId` | *(trống)* | *(trống)* |
+| Variable        | Initial Value           | Current Value           |
+| --------------- | ----------------------- | ----------------------- |
+| `baseUrl`       | `http://localhost:5000` | `http://localhost:5000` |
+| `tokenListener` | _(trống)_               | _(trống)_               |
+| `tokenArtist`   | _(trống)_               | _(trống)_               |
+| `tokenAdmin`    | _(trống)_               | _(trống)_               |
+| `songId`        | _(trống)_               | _(trống)_               |
+| `albumId`       | _(trống)_               | _(trống)_               |
 
 4. Chọn environment vừa tạo là **Active**
 
@@ -323,6 +325,7 @@ https://www.postman.com/downloads/
 3. Nhấn **Send**
 
 **Kết quả mong đợi**: HTTP 200, Body:
+
 ```json
 { "isLiked": true, "likeCount": 11 }
 ```
@@ -338,6 +341,7 @@ https://www.postman.com/downloads/
 3. Nhấn **Send** (ngay sau TC-03, cùng bài)
 
 **Kết quả mong đợi**: HTTP 200, Body:
+
 ```json
 { "isLiked": false, "likeCount": 10 }
 ```
@@ -366,6 +370,7 @@ https://www.postman.com/downloads/
 3. Nhấn **Send**
 
 **Kết quả mong đợi**: HTTP 200:
+
 ```json
 { "message": "Thành công.", "action": "approve" }
 ```
@@ -384,6 +389,7 @@ https://www.postman.com/downloads/
 4. Nhấn **Send**
 
 **Kết quả mong đợi**: HTTP 200:
+
 ```json
 { "message": "Thành công.", "action": "reject" }
 ```
@@ -401,6 +407,7 @@ https://www.postman.com/downloads/
 5. Nhấn **Send**
 
 **Kết quả mong đợi**: HTTP 400 hoặc 403:
+
 ```json
 { "error": "Không thể khóa tài khoản của chính mình." }
 ```
@@ -417,10 +424,12 @@ https://www.postman.com/downloads/
 4. Nhấn **Send**
 
 **Kết quả mong đợi**: HTTP 200:
+
 ```json
 { "message": "Đã khóa.", "isActive": false }
 ```
-*(Chạy lần 2 sẽ toggle ngược: "Đã mở khóa.", "isActive": true)*
+
+_(Chạy lần 2 sẽ toggle ngược: "Đã mở khóa.", "isActive": true)_
 
 **Ảnh cần chụp**: Response body JSON.
 
@@ -436,6 +445,7 @@ https://www.postman.com/downloads/
 6. Nhấn **Send**
 
 **Kết quả mong đợi**: HTTP **403**:
+
 ```json
 { "error": "Không tìm thấy bài hát hoặc bạn không có quyền." }
 ```
@@ -453,6 +463,7 @@ https://www.postman.com/downloads/
 5. Nhấn **Send**
 
 **Kết quả mong đợi**: HTTP **400**:
+
 ```json
 { "error": "Bài hát không hợp lệ." }
 ```
@@ -490,6 +501,7 @@ https://dbeaver.io/download/
 ```
 
 Connection:
+
 ```
 Host:     localhost
 Port:     5432
@@ -534,25 +546,30 @@ Tổng: 11 Manual + 8 Postman = 19 test thực hiện (TC-14 + TC-05 mỗi cái 
 
 ```
 soundclown-mvp/
-├── test/
-│   ├── TEST_GUIDE.md                         ← Hướng dẫn này
-│   ├── create_test_files.sh                   ← Script tạo file test (chạy 1 lần)
+├── tests/
+│   ├── README.md                            ← Index/quick start cho tất cả test
+│   ├── MANUAL_TESTS.md                      ← Hướng dẫn này (20 manual TC)
 │   ├── postman/
 │   │   └── SoundClown_Test_Collection.json  ← Import vào Postman
-│   └── files/                               ← File test (tạo bằng script trên)
-│       ├── malicious.mp3                     ← file .exe đổi tên — TC-02
-│       ├── exact_10mb.mp3                   ← file 10MB — TC-06
-│       ├── over_10mb.mp3                    ← file 10.5MB — TC-07
-│       └── sample_5mb.mp3                  ← file 5MB — TC-01
+│   ├── fixtures/
+│   │   ├── create_test_files.sh             ← Script tạo file test (chạy 1 lần)
+│   │   └── files/                           ← File test (tạo bằng script trên)
+│   │       ├── malicious.mp3                ← file .exe đổi tên — TC-02
+│   │       ├── exact_10mb.mp3               ← file 10MB — TC-06
+│   │       ├── over_10mb.mp3                ← file 10.5MB — TC-07
+│   │       └── sample_5mb.mp3               ← file 5MB — TC-01
+│   ├── SoundClown.UnitTests/                ← 16 xUnit unit test
+│   └── SoundClown.E2ETests/                 ← 5 Playwright E2E test
 ├── Controllers/
-│   ├── AuthController.cs                    ← Đã thêm JWT token trong response login
+│   ├── AuthController.cs                    ← JWT token trong response login
 │   └── TestApiController.cs                 ← API endpoints cho Postman test
-└── Program.cs                               ← Đã thêm JWT Bearer authentication
+└── Program.cs                               ← JWT Bearer authentication
 ```
 
 **Tạo file test** (chạy 1 lần duy nhất):
+
 ```bash
-bash test/create_test_files.sh
+bash tests/fixtures/create_test_files.sh
 ```
 
 ---
@@ -565,7 +582,7 @@ bash test/create_test_files.sh
 
 3. **TC-08/TC-09**: Hai testcase này cần timing thực tế. Không thể test bằng Postman vì cần browser phát audio. Chạy thủ công trên trình duyệt.
 
-4. **File test**: Các file trong `test/files/` cần được tạo thủ công (xem phần "Tạo file test" bên dưới).
+4. **File test**: Các file trong `tests/fixtures/files/` cần được tạo thủ công (xem phần "Tạo file test" bên dưới).
 
 ---
 
@@ -575,10 +592,11 @@ Chạy script tạo file (cần Linux/macOS/WSL):
 
 ```bash
 cd soundclown-mvp
-bash test/create_test_files.sh
+bash tests/fixtures/create_test_files.sh
 ```
 
-Script sẽ tạo 4 file trong `test/files/`:
+Script sẽ tạo 4 file trong `tests/fixtures/files/`:
+
 - `malicious.mp3` — 2KB random (mô phỏng .exe đổi tên) → TC-02
 - `exact_10mb.mp3` — 10,485,760 bytes → TC-06
 - `over_10mb.mp3` — 11,010,048 bytes → TC-07

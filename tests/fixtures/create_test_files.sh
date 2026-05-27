@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # Script tạo các file test cho TC-02, TC-06, TC-07
-# Chạy: bash test/create_test_files.sh
+# Chạy: bash tests/fixtures/create_test_files.sh
 # =============================================================================
 
 set -e
