@@ -120,7 +120,7 @@ tests/
 
 ---
 
-## 🔄 Re-generate evidence cho báo cáo
+## 🔄 Re-generate evidence
 
 Tất cả screenshot trong `tests/SoundClown.E2ETests/Screenshots/` được Playwright tự sinh khi chạy test. Để chụp lại coverage HTML report:
 
@@ -130,7 +130,4 @@ SCREENSHOT_COVERAGE=1 dotnet test \
   --project tests/SoundClown.E2ETests
 # → tests/SoundClown.E2ETests/Screenshots/06-coverage-report.png
 ```
-
-Sau khi có ảnh mới, swap vào docx bằng các script ở [docs/scripts/](../docs/scripts/).
-
 ---
