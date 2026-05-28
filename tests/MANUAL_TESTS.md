@@ -6,17 +6,17 @@
 
 ---
 
-## 📋 Tổng Quan Testcase
+## Tổng quan testcase
 
-| Tool                      | Số lượng | Testcase                                             |
-| ------------------------- | -------- | ---------------------------------------------------- |
-| 🖥️ Trình duyệt (thủ công) | 12       | TC-01,02,06,07,10,13,14,17,18,19 + TC-08,09 (timing) |
-| 📮 Postman (API)          | 8        | TC-03,04,05,11,12,15,16,20                           |
-| **Tổng**                  | **20**   |                                                      |
+| Tool                   | Số lượng | Testcase                                             |
+| ---------------------- | -------- | ---------------------------------------------------- |
+| Trình duyệt (thủ công) | 12       | TC-01,02,06,07,10,13,14,17,18,19 + TC-08,09 (timing) |
+| Postman (API)          | 8        | TC-03,04,05,11,12,15,16,20                           |
+| **Tổng**               | **20**   |                                                      |
 
 ---
 
-## 🖥️ PHẦN 1 — Test Thủ Công (12 TC)
+## Phần 1 — Test thủ công (12 TC)
 
 ### Cách chụp ảnh nhanh
 
@@ -30,7 +30,7 @@
 
 ---
 
-### TC-01 — Upload bài hát thành công ✅
+### TC-01 — Upload bài hát thành công
 
 **Loại**: Black-box, Positive, Functional
 
@@ -57,7 +57,7 @@
 
 ---
 
-### TC-02 — Upload file .exe đổi đuôi thành .mp3 ❌
+### TC-02 — Upload file .exe đổi đuôi thành .mp3
 
 **Loại**: Black-box, Negative, Validation
 
@@ -76,7 +76,7 @@
 
 ---
 
-### TC-06 — Upload file đúng 10MB ✅
+### TC-06 — Upload file đúng 10MB
 
 **Loại**: Boundary Testing
 
@@ -95,7 +95,7 @@
 
 ---
 
-### TC-07 — Upload file vượt 10MB ❌
+### TC-07 — Upload file vượt 10MB
 
 **Loại**: Boundary Testing
 
@@ -129,7 +129,7 @@
 
 ---
 
-### TC-13 — Admin Reject không nhập lý do ❌
+### TC-13 — Admin Reject không nhập lý do
 
 **Loại**: Black-box, Validation
 
@@ -150,7 +150,7 @@
 
 ---
 
-### TC-14 — Admin tự khóa tài khoản mình ❌
+### TC-14 — Admin tự khóa tài khoản mình
 
 **Loại**: Black-box, Security
 
@@ -222,7 +222,7 @@
 
 ---
 
-### TC-08 — Play ≥30 giây → Play count tăng 1 ⏱️
+### TC-08 — Play ≥30 giây → Play count tăng 1
 
 **Loại**: Black-box, Functional (timing-sensitive)
 
@@ -249,7 +249,7 @@ SELECT id, title, play_count FROM songs WHERE id = <songId>;
 
 ---
 
-### TC-09 — Play <30 giây → Play count không đổi ⏱️
+### TC-09 — Play <30 giây → Play count không đổi
 
 **Loại**: Black-box, Negative (timing-sensitive)
 
@@ -267,7 +267,7 @@ SELECT id, title, play_count FROM songs WHERE id = <songId>;
 
 ---
 
-## 📮 PHẦN 2 — Test API bằng Postman (8 TC)
+## Phần 2 — Test API bằng Postman (8 TC)
 
 ### Bước 1 — Cài đặt Postman
 
@@ -285,7 +285,7 @@ https://www.postman.com/downloads/
 
 ### Bước 3 — Tạo Environment
 
-1. Nhấn biểu tượng **⚙️** (gears) góc trên phải → **Manage Environments**
+1. Nhấn biểu tượng **gears** góc trên phải → **Manage Environments**
 2. Nhấn **Add**
 3. Điền:
 
@@ -318,7 +318,7 @@ https://www.postman.com/downloads/
 
 ### Bước 5 — Chạy các Test Request
 
-#### TC-03 — Like (nhánh Insert) ✅
+#### TC-03 — Like (nhánh Insert)
 
 1. Folder **"=== 1. LIKE / UNLIKE ==="**
 2. Mở **"TC-03 Like (nhánh Insert)"** — Bearer token đã được cấu hình sẵn trong request
@@ -334,7 +334,7 @@ https://www.postman.com/downloads/
 
 ---
 
-#### TC-04 — Unlike (nhánh Delete) ✅
+#### TC-04 — Unlike (nhánh Delete)
 
 1. **"TC-04 Unlike (nhánh Delete)"**
 2. Token: `{{tokenAdmin}}`
@@ -350,7 +350,7 @@ https://www.postman.com/downloads/
 
 ---
 
-#### TC-05 — Listener/Artist gọi API Admin → 403 ❌
+#### TC-05 — Listener/Artist gọi API Admin → 403
 
 1. Folder **"=== 2. ADMIN REVIEW ==="**
 2. **"TC-05 Listener gọi API Admin → 403"** — Token: `{{tokenListener}}`
@@ -363,7 +363,7 @@ https://www.postman.com/downloads/
 
 ---
 
-#### TC-11 — Review Approve (nhánh Approve) ✅
+#### TC-11 — Review Approve (nhánh Approve)
 
 1. **"TC-11 Review Approve (nhánh approve)"**
 2. Token: `{{tokenAdmin}}`
@@ -381,7 +381,7 @@ https://www.postman.com/downloads/
 
 ---
 
-#### TC-12 — Review Reject (nhánh Reject) ✅
+#### TC-12 — Review Reject (nhánh Reject)
 
 1. **"TC-12 Review Reject (nhánh reject)"**
 2. Token: `{{tokenAdmin}}`
@@ -398,7 +398,7 @@ https://www.postman.com/downloads/
 
 ---
 
-#### TC-14 — Admin tự khóa mình → Lỗi ❌
+#### TC-14 — Admin tự khóa mình → Lỗi
 
 1. Folder **"=== 3. LOCK USER ==="**
 2. **"TC-14 Admin tự khóa mình → lỗi"**
@@ -416,7 +416,7 @@ https://www.postman.com/downloads/
 
 ---
 
-#### TC-15 — ToggleLockUser hợp lệ ✅
+#### TC-15 — ToggleLockUser hợp lệ
 
 1. **"TC-15 ToggleLockUser hợp lệ"**
 2. Token: `{{tokenAdmin}}`
@@ -435,7 +435,7 @@ _(Chạy lần 2 sẽ toggle ngược: "Đã mở khóa.", "isActive": true)_
 
 ---
 
-#### TC-16 — Artist A sửa bài Artist B → 403 ❌
+#### TC-16 — Artist A sửa bài Artist B → 403
 
 1. Folder **"=== 4. SECURITY ==="**
 2. **"TC-16 Artist A sửa bài Artist B → 403"**
@@ -454,7 +454,7 @@ _(Chạy lần 2 sẽ toggle ngược: "Đã mở khóa.", "isActive": true)_
 
 ---
 
-#### TC-20 — Artist thêm bài người khác vào album ❌
+#### TC-20 — Artist thêm bài người khác vào album
 
 1. **"TC-20 Artist thêm bài người khác vào album"**
 2. Token: `{{tokenArtist}}`
@@ -472,7 +472,7 @@ _(Chạy lần 2 sẽ toggle ngược: "Đã mở khóa.", "isActive": true)_
 
 ---
 
-## 🔧 PHẦN 3 — Bonus: Kiểm Tra Database
+## Phần 3 — Kiểm tra database (bonus)
 
 ### Cách 1 — psql trong terminal
 
@@ -512,7 +512,7 @@ Password: postgres
 
 ---
 
-## ✅ Checklist Tổng Hợp
+## Checklist tổng hợp
 
 ```
 ☐ TC-01  [Manual]   Upload thành công → chụp toast + My Songs (badge Pending)
@@ -542,7 +542,7 @@ Tổng: 11 Manual + 8 Postman = 19 test thực hiện (TC-14 + TC-05 mỗi cái 
 
 ---
 
-## 📁 Cấu Trúc Thư Mục
+## Cấu trúc thư mục
 
 ```
 soundclown-mvp/
@@ -574,7 +574,7 @@ bash tests/fixtures/create_test_files.sh
 
 ---
 
-## ⚠️ Lưu Ý Quan Trọng
+## Lưu ý quan trọng
 
 1. **Postman + JWT Bearer Auth**: App đã được cấu hình JWT Bearer authentication. Sau khi login thành công, `/auth/login` trả về `{ token: "...", user: {...} }` — token này được tự động lưu vào biến Postman bởi script trong tab Tests của mỗi request Login. Dùng token này trong header `Authorization: Bearer <token>` cho các API test.
 
@@ -586,7 +586,7 @@ bash tests/fixtures/create_test_files.sh
 
 ---
 
-## 🛠️ Tạo File Test
+## Tạo file test
 
 Chạy script tạo file (cần Linux/macOS/WSL):
 
