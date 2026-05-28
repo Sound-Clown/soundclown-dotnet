@@ -2,8 +2,6 @@
 
 Ứng dụng nghe nhạc trực tuyến — Blazor Server + PostgreSQL + Cloudinary.
 
----
-
 ## Công nghệ sử dụng
 
 | Lớp           | Công nghệ                                                       |
@@ -13,240 +11,66 @@
 | Xác thực      | Cookie-based, BCrypt (cost 12)                                  |
 | Media         | Cloudinary .NET SDK (upload audio + ảnh bìa)                    |
 | Email         | MailKit SMTP (luồng reset mật khẩu)                             |
-| CSS           | Tailwind CDN + dark theme tự thiết kế (`app.css`, accent `#F5A623`) |
-| Audio         | `HTMLAudioElement` qua JS Interop (`wwwroot/js/player.js`)       |
+| CSS           | Tailwind CDN + dark theme tự thiết kế (accent `#F5A623`)        |
+| Audio         | HTML5 `<audio>` qua JS Interop (`wwwroot/js/player.js`)         |
 
----
+## Yêu cầu
 
-## Cấu trúc thư mục
+- .NET SDK 8.0
+- Docker (để chạy PostgreSQL)
+- Tài khoản Cloudinary (free tier — dùng để lưu file audio/ảnh)
 
-```
-soundclown-mvp/
-├── Program.cs                            # DI, middleware pipeline, cấu hình auth
-├── appsettings.json / .Development.json  # Cấu hình local (DB, Cloudinary, Mail, Auth)
-│
-├── Components/
-│   ├── App.razor                        # Root Blazor component
-│   ├── Routes.razor                     # Entry point cho routing
-│   ├── _Imports.razor                   # @using / @inject directives toàn cục
-│   │
-│   ├── Layout/
-│   │   ├── MainLayout.razor             # Shell Sidebar + PlayerBar (trang đã đăng nhập)
-│   │   └── AuthLayout.razor             # Layout giữa màn hình (login/register)
-│   │
-│   ├── Admin/
-│   │   ├── AdminSongs.razor             # Hàng đợi duyệt bài + panel approve/reject
-│   │   └── AdminUsers.razor             # Danh sách user + toggle khóa/mở khóa
-│   │
-│   ├── Artist/
-│   │   ├── ArtistAlbums.razor           # CRUD album, quản lý bài trong album
-│   │   ├── ArtistSongs.razor            # Danh sách bài của Artist + sửa/xóa
-│   │   ├── ArtistStats.razor            # Thống kê lượt nghe/like (biểu đồ cột)
-│   │   └── ArtistUpload.razor           # Form upload audio + ảnh bìa
-│   │
-│   ├── Auth/
-│   │   ├── Login.razor                  # Form đăng nhập + tab đăng ký
-│   │   ├── Register.razor               # Đăng ký + chọn role + thanh độ mạnh mật khẩu
-│   │   ├── ForgotPassword.razor         # Gửi email reset mật khẩu
-│   │   └── ResetPassword.razor          # Đặt lại mật khẩu bằng token từ email
-│   │
-│   ├── Main/
-│   │   ├── Home.razor                   # Lưới bài hát đã duyệt, có ô tìm kiếm
-│   │   ├── Search.razor                 # Tìm kiếm full-text có debounce
-│   │   ├── Settings.razor               # Đổi mật khẩu (≥8 ký tự, thanh độ mạnh)
-│   │   ├── SongDetail.razor             # Chi tiết bài: play, like, share
-│   │   └── AlbumDetail.razor            # Album: ảnh bìa + danh sách bài, phát theo queue
-│   │
-│   └── Shared/
-│       ├── SongCard.razor               # Card lưới (ảnh bìa, overlay play, like)
-│       ├── SongRow.razor                # Dòng list (cho search / album)
-│       ├── SongStatusBadge.razor        # Badge Pending / Approved / Rejected
-│       ├── RoleBadge.razor              # Badge Listener / Artist / Admin
-│       ├── PlayerBar.razor              # Player cố định phía dưới (SSR-safe, JS Interop)
-│       ├── ConfirmDialog.razor          # Modal xác nhận (xóa)
-│       ├── EmptyState.razor             # Icon + thông báo cho list rỗng
-│       └── LoadingSpinner.razor         # Loading indicator
-│
-├── Controllers/
-│   ├── AuthController.cs                # MVC fallback: POST /auth/login, /auth/logout
-│   └── TestApiController.cs             # API endpoints phục vụ kiểm thử bằng Postman
-│
-├── Data/
-│   ├── AppDbContext.cs                  # EF Core DbContext + cấu hình entity
-│   ├── DbSeeder.cs                      # Seed tài khoản admin/listener/artist khi khởi động
-│   └── SongSeeder.cs                    # Seed 1000 bài hát giả + 80 album cho demo
-│
-├── DTOs/
-│   ├── AlbumDto.cs                      # AlbumDetailDto, AlbumListDto
-│   ├── ArtistSearchDto.cs
-│   ├── AuthDto.cs                       # RegisterDto, LoginDto, ChangePasswordDto, ResetPasswordDto
-│   ├── PagedResult.cs                   # Wrapper phân trang (Items, Total, Page, PageSize)
-│   ├── ServiceResult.cs                 # Wrapper kết quả (IsSuccess, Data, Error, FieldErrors)
-│   ├── SongDto.cs
-│   ├── StatsDto.cs
-│   ├── UploadResult.cs                  # Url + PublicId từ Cloudinary
-│   └── UserDto.cs
-│
-├── Entities/
-│   ├── User.cs                          # Id, Username, Email, PasswordHash, Role, IsActive, CreatedAt
-│   ├── Song.cs                          # Id, Title, AudioFile, CoverImage, ArtistId, AlbumId?, Status, RejectReason, PlayCount, LikeCount, CreatedAt
-│   ├── Album.cs                         # Id, Name, CoverImage, ArtistId, CreatedAt
-│   ├── Like.cs                          # Composite PK (UserId+SongId), cascade delete
-│   └── PasswordResetToken.cs            # UserId(unique), Token(unique), ExpiresAt(30 phút)
-│
-├── Enums/
-│   ├── Role.cs                          # Listener, Artist, Admin
-│   └── SongStatus.cs                    # Pending, Approved, Rejected
-│
-├── Services/                            # Tất cả Scoped (Blazor Server DI)
-│   ├── IAuthService.cs / AuthService.cs           # Đăng ký, login, logout, quên/đổi mật khẩu
-│   ├── ICurrentUserService.cs / CurrentUserService.cs  # Wrapper ClaimsPrincipal (UserId, Role, IsAdmin, IsArtist)
-│   ├── ISongService.cs / SongService.cs           # CRUD bài hát, phân trang, search, toggleLike
-│   ├── IAlbumService.cs / AlbumService.cs         # CRUD album + addSong / removeSong
-│   ├── IAdminService.cs / AdminService.cs         # Duyệt bài (approve/reject), khóa user
-│   ├── IUploadService.cs / UploadService.cs       # Cloudinary: UploadAudio/Image/DeleteFile
-│   ├── IPlayerService.cs / PlayerService.cs       # Queue, current song, sự kiện phát nhạc
-│   ├── IToastService.cs / ToastService.cs         # Sự kiện toast (Success/Error/Info/Warning)
-│   └── IEmailService.cs / EmailService.cs         # MailKit: SendResetPasswordEmailAsync
-│
-├── wwwroot/
-│   ├── app.css                          # Bootstrap import + CSS tự thiết kế
-│   ├── bootstrap/bootstrap.min.css      # Bootstrap 5.3 base
-│   ├── css/app.css                      # Biến CSS dark theme, utilities, components
-│   └── js/
-│       ├── player.js                    # globalThis.musicPlayer + schedulePlayCount (timer 30s)
-│       └── helpers.js                   # copyToClipboard, scrollToTop, readDropFile, showToast
-│
-├── docs/
-│   ├── Đảm Bảo Chất Lượng Phần Mềm.docx # Báo cáo đề tài (bản chính)
-│   ├── diagrams/usecase.puml            # Source PlantUML lược đồ Use Case
-│   └── scripts/                         # Script Python chỉnh sửa báo cáo .docx
-│
-└── tests/                               # Tổng 41 testcase (20 manual + 16 unit + 5 E2E)
-    ├── README.md                        # ⭐ Hướng dẫn chạy test — bắt đầu ở đây
-    ├── MANUAL_TESTS.md                  # Chi tiết 20 testcase thủ công (browser + Postman)
-    ├── postman/                         # Postman collection cho API test
-    ├── fixtures/                        # Script sinh file MP3 test
-    ├── SoundClown.UnitTests/            # xUnit + EF Core InMemory + Coverlet
-    └── SoundClown.E2ETests/             # Playwright + Chromium headless
-```
+## Khởi chạy
 
----
+### Bước 1 — Tạo file `.env`
 
-## Tính năng
-
-### Xác thực & phân quyền
-
-- Đăng nhập bằng Cookie (hết hạn sau 7 ngày)
-- 3 vai trò: **Listener** (người nghe), **Artist** (nghệ sĩ), **Admin** (kiểm duyệt)
-- Thanh độ mạnh mật khẩu (≥8 ký tự, kiểm tra chữ hoa/thường, số, ký tự đặc biệt)
-- Reset mật khẩu qua email token (hết hạn sau 30 phút)
-- Sidebar điều hướng theo role (Listener chỉ thấy Trang chủ; Artist thấy thêm menu upload/album/stats)
-
-### Vòng đời bài hát
-
-1. **Artist** upload audio + ảnh bìa (tùy chọn) → bài hát ở trạng thái `Pending`
-2. **Admin** duyệt → chuyển `Approved` (công khai) hoặc `Rejected` (kèm lý do tùy chọn)
-3. Artist sửa bài → status reset về `Pending` chờ duyệt lại
-
-### Phát nhạc
-
-- HTML5 `<audio>` qua JS Interop (không reload trang)
-- Hệ thống queue: phát từng bài, phát tất cả, phát từ album/kết quả tìm kiếm
-- Lượt nghe được tính sau khi nghe đủ 30 giây (timer JS → callback Blazor `OnPlayThreshold`)
-- Toggle Like cập nhật số lượt thích real-time
-
-### Tìm kiếm
-
-- Tìm kiếm có debounce 300ms trên trang chủ
-- Full-text search theo tên bài hát + tên nghệ sĩ
-
-### Admin Panel
-
-- Duyệt bài Pending: approve / reject kèm lý do
-- Quản lý user: khóa / mở khóa tài khoản
-
-### Artist Dashboard
-
-- Upload bài hát (audio MP3 ≤10MB, ảnh bìa JPG/PNG/WebP ≤2MB)
-- Quản lý bài của mình: sửa title/ảnh bìa/album, xóa
-- Quản lý album: tạo, sửa, thêm/bỏ bài
-- Thống kê: tổng lượt nghe, tổng lượt like
-
----
-
-## Cấu hình
+Copy file mẫu rồi điền credentials:
 
 ```bash
-cp .env.example .env   # điền credentials vào file .env
+cp .env.example .env
 ```
 
-Sau đó cập nhật `appsettings.json`:
+Nội dung `.env` tối thiểu cần có (Cloudinary bắt buộc — đăng ký free tại [cloudinary.com](https://cloudinary.com)):
 
-```json
-{
-  "ConnectionStrings": {
-    "DefaultConnection": "Host=localhost;Database=soundclown;Username=postgres;Password=postgres"
-  },
-  "Cloudinary": {
-    "CloudName": "your-cloud-name",
-    "ApiKey": "your-api-key",
-    "ApiSecret": "your-api-secret"
-  },
-  "Mail": {
-    "Host": "smtp.example.com",
-    "Port": 587,
-    "Username": "user@example.com",
-    "Password": "your-smtp-password"
-  }
-}
+```
+DB_CONNECTION_STRING=Host=localhost;Database=soundclown;Username=postgres;Password=postgres
+AUTH_COOKIE_NAME=music_auth
+AUTH_EXPIRE_DAYS=7
+
+CLOUDINARY_CLOUD_NAME=<điền từ Cloudinary dashboard>
+CLOUDINARY_API_KEY=<điền từ Cloudinary dashboard>
+CLOUDINARY_API_SECRET=<điền từ Cloudinary dashboard>
+
+# Mail (tuỳ chọn — chỉ cần cho luồng reset mật khẩu)
+MAIL_HOST=smtp.gmail.com
+MAIL_PORT=587
+MAIL_USERNAME=your_email@gmail.com
+MAIL_PASSWORD=your_app_password
+
+APP_BASE_URL=http://localhost:5000
 ```
 
-### Đăng ký Cloudinary (miễn phí)
-
-1. Đăng ký tại [cloudinary.com](https://cloudinary.com)
-2. Tạo 2 folder: `soundclown/audio` và `soundclown/covers`
-3. Copy Cloud Name, API Key, API Secret vào `appsettings.json`
-
----
-
-## Khởi chạy / Dừng
-
-### 1. PostgreSQL
+### Bước 2 — Khởi động PostgreSQL
 
 ```bash
-# Khởi động
 docker compose up -d
-
-# Dừng (giữ dữ liệu)
-docker compose down
-
-# Dừng + xóa dữ liệu
-docker compose down -v
 ```
 
-### 2. App
+Container `soundclown-db` chạy ở port 5432.
+
+### Bước 3 — Chạy ứng dụng
 
 ```bash
-# Chạy bình thường (HTTP, port 5000)
 dotnet run --urls "http://localhost:5000"
-
-# Chế độ watch (tự build lại khi file thay đổi)
-dotnet watch run --urls "http://localhost:5000"
 ```
 
-Truy cập: **http://localhost:5000**
+Lần chạy đầu, app tự tạo schema + seed dữ liệu (3 tài khoản mặc định + 1000 bài hát giả).
 
-### Reset cơ sở dữ liệu
+### Bước 4 — Truy cập
 
-```bash
-docker exec -it soundclown-db psql -U postgres -c "DROP DATABASE soundclown;"
-dotnet run --urls "http://localhost:5000"   # app tự tạo lại schema khi khởi động
-```
+Mở trình duyệt: **http://localhost:5000**
 
----
-
-## Tài khoản mặc định
+## Tài khoản mặc định (seed sẵn)
 
 | Vai trò  | Email                | Mật khẩu       |
 | -------- | -------------------- | -------------- |
@@ -254,44 +78,47 @@ dotnet run --urls "http://localhost:5000"   # app tự tạo lại schema khi kh
 | Listener | `listener@demo.com`  | `Listener123!` |
 | Artist   | `artist@demo.com`    | `Artist123!`   |
 
-Trang đăng nhập: **http://localhost:5000/login**
+## Tính năng chính
 
----
+- **3 vai trò**: Listener (nghe + tương tác), Artist (upload + quản lý tác phẩm), Admin (duyệt nội dung).
+- **Vòng đời bài hát**: Artist upload → `Pending` → Admin duyệt → `Approved` (công khai) / `Rejected` (kèm lý do). Artist sửa bài → status reset về `Pending`.
+- **Phát nhạc**: HTML5 `<audio>` qua JS Interop, queue chuyển bài tự động, đếm lượt nghe sau 30 giây.
+- **Tương tác**: Like/Unlike, chia sẻ link bài hát, tìm kiếm có debounce 300ms.
+- **Artist Dashboard**: Upload audio MP3 ≤10MB + ảnh bìa ≤2MB, quản lý album, xem thống kê lượt nghe/like.
+- **Admin Panel**: Duyệt/từ chối bài Pending, khóa/mở khóa user.
 
-## Quy trình vận hành
+## Cấu trúc thư mục (rút gọn)
 
 ```
-Listener  → Duyệt trang chủ, tìm kiếm, phát, like, chia sẻ, đổi mật khẩu
-Artist    → Upload bài (Pending) → Chờ admin duyệt → Công khai
-Admin     → Duyệt / Từ chối bài Pending, khóa/mở khóa user
+soundclown-mvp/
+├── Program.cs                  # DI, middleware, cấu hình auth
+├── Components/                 # Blazor UI (Layout, Admin, Artist, Auth, Main, Shared)
+├── Controllers/                # MVC fallback cho auth + API endpoint cho test
+├── Data/                       # AppDbContext + Seeders
+├── DTOs/ Entities/ Enums/      # Domain layer
+├── Services/                   # Business logic (tất cả Scoped)
+├── wwwroot/                    # CSS, JS, ảnh tĩnh
+├── docs/                       # Báo cáo + diagrams + scripts hỗ trợ
+└── tests/                      # 41 testcase (xem tests/README.md)
 ```
 
-Trạng thái bài hát sau khi upload: `Pending` → Admin duyệt → `Approved` (hiển thị công khai). Artist sửa bài → reset về `Pending` để chờ duyệt lại.
+## Reset cơ sở dữ liệu
 
----
+```bash
+docker exec -it soundclown-db psql -U postgres -c "DROP DATABASE soundclown;"
+dotnet run --urls "http://localhost:5000"   # app tự tạo lại schema khi khởi động
+```
 
 ## Kiểm thử
 
-Đề tài có **41 testcase** tổng cộng:
+Đề tài có **41 testcase**: 20 manual + 16 unit test (xUnit) + 5 E2E (Playwright).
 
-| Loại                       | Số lượng | Công cụ                             |
-| -------------------------- | -------: | ----------------------------------- |
-| Manual (browser + Postman) |       20 | Trình duyệt + Postman               |
-| Unit test (tự động)        |       16 | xUnit + EF Core InMemory + Coverlet |
-| E2E test (tự động)         |        5 | Playwright .NET + Chromium headless |
+Hướng dẫn chạy test đầy đủ → [tests/README.md](tests/README.md).
 
-📖 **Hướng dẫn chạy test đầy đủ** → [tests/README.md](tests/README.md)
-
-Chạy nhanh các test tự động:
+Chạy nhanh test tự động:
 
 ```bash
-# Unit test (cô lập, không cần app chạy)
-dotnet test tests/SoundClown.UnitTests
-
-# E2E (cần app + Postgres chạy ở localhost:5000)
-docker compose up -d
-dotnet run --urls "http://localhost:5000" &
-dotnet test tests/SoundClown.E2ETests
+dotnet test tests/SoundClown.UnitTests                       # unit (không cần app chạy)
+docker compose up -d && dotnet run --urls "http://localhost:5000" &
+dotnet test tests/SoundClown.E2ETests                        # E2E (cần app + DB chạy)
 ```
-
-Chi tiết 20 manual TC kèm ảnh minh hoạ → [tests/MANUAL_TESTS.md](tests/MANUAL_TESTS.md).
