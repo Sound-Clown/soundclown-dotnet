@@ -197,7 +197,7 @@
 **Các bước**:
 
 1. Vào **/search**
-2. Nhập từ khóa khớp với ít nhất 1 bài hát (VD: "Summer" nếu có bài "Summer Vibes")
+2. Nhập từ khóa khớp với ít nhất 1 bài hát (VD: "Giấc Mơ" — seed data có bài "Giấc Mơ Mùa Hè")
 3. Chờ kết quả (debounce ~300ms)
 
 **Kết quả mong đợi**: Hiển thị danh sách bài hát khớp.
@@ -327,7 +327,7 @@ https://www.postman.com/downloads/
 **Kết quả mong đợi**: HTTP 200, Body:
 
 ```json
-{ "isLiked": true, "likeCount": 11 }
+{ "liked": true, "newCount": 11 }
 ```
 
 **Ảnh cần chụp**: Response body JSON trong Postman.
@@ -343,7 +343,7 @@ https://www.postman.com/downloads/
 **Kết quả mong đợi**: HTTP 200, Body:
 
 ```json
-{ "isLiked": false, "likeCount": 10 }
+{ "liked": false, "newCount": 10 }
 ```
 
 **Ảnh cần chụp**: Response body JSON.
@@ -517,8 +517,8 @@ Password: postgres
 ```
 ☐ TC-01  [Manual]   Upload thành công → chụp toast + My Songs (badge Pending)
 ☐ TC-02  [Manual]   Upload .exe đổi .mp3 → chụp lỗi MIME
-☐ TC-03  [Postman]  POST /api/songs/{id}/like → chụp JSON {isLiked: true}
-☐ TC-04  [Postman]  POST /api/songs/{id}/like → chụp JSON {isLiked: false}
+☐ TC-03  [Postman]  POST /api/songs/{id}/like → chụp JSON {liked: true}
+☐ TC-04  [Postman]  POST /api/songs/{id}/like → chụp JSON {liked: false}
 ☐ TC-05  [Postman]  POST /api/admin/... với Listener → chụp HTTP 403
 ☐ TC-05  [Postman]  POST /api/admin/... với Artist → chụp HTTP 403
 ☐ TC-06  [Manual]   Upload đúng 10MB → chụp thành công

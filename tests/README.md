@@ -134,9 +134,3 @@ SCREENSHOT_COVERAGE=1 dotnet test \
 Sau khi có ảnh mới, swap vào docx bằng các script ở [docs/scripts/](../docs/scripts/).
 
 ---
-
-## 📚 Tham khảo
-
-- Báo cáo đầy đủ: `docs/Đảm Bảo Chất Lượng Phần Mềm.docx`
-- Hướng dẫn viết báo cáo (thầy Hào): `docs/Viet_bao_cao_xay_dung_ung_dung.md`
-- UC diagram source (PlantUML): `docs/diagrams/usecase.puml`
