@@ -31,7 +31,7 @@ public class SongService : ISongService
             .Take(pageSize)
             .ToListAsync();
 
-        var dtos = items.Select(s => MapSong(s, _currentUser.UserId)).ToList();
+        var dtos = await MapSongsAsync(items, _currentUser.UserId);
         var paged = new PagedResult<SongDto>(dtos, total, page, pageSize);
         return ServiceResult<PagedResult<SongDto>>.Ok(paged);
     }
@@ -49,8 +49,7 @@ public class SongService : ISongService
             .Take(50)
             .ToListAsync();
 
-        return ServiceResult<List<SongDto>>.Ok(
-            songs.Select(s => MapSong(s, currentUserId)).ToList());
+        return ServiceResult<List<SongDto>>.Ok(await MapSongsAsync(songs, currentUserId));
     }
 
     public async Task<(List<SongDto> Songs, List<ArtistSearchDto> Artists)> SearchAsync(string query, int currentUserId)
@@ -76,10 +75,7 @@ public class SongService : ISongService
             .Take(50)
             .ToListAsync();
 
-        return (
-            songs.Select(s => MapSong(s, currentUserId)).ToList(),
-            artists
-        );
+        return (await MapSongsAsync(songs, currentUserId), artists);
     }
 
     public async Task<ServiceResult<SongDto>> GetByIdAsync(int id, int currentUserId)
@@ -91,6 +87,12 @@ public class SongService : ISongService
             .FirstOrDefaultAsync(s => s.Id == id);
 
         if (song == null)
+            return ServiceResult<SongDto>.Fail("Không tìm thấy bài hát.");
+
+        // Bài chưa duyệt chỉ chủ bài và Admin xem được — tránh lộ nội dung
+        // Pending/Rejected (kèm lý do từ chối) qua URL trực tiếp.
+        if (song.Status != SongStatus.Approved &&
+            song.ArtistId != currentUserId && !_currentUser.IsAdmin)
             return ServiceResult<SongDto>.Fail("Không tìm thấy bài hát.");
 
         return ServiceResult<SongDto>.Ok(MapSong(song, currentUserId));
@@ -189,7 +191,7 @@ public class SongService : ISongService
         if (existing != null)
         {
             _db.Likes.Remove(existing);
-            song.LikeCount--;
+            song.LikeCount = Math.Max(0, song.LikeCount - 1); // không cho count âm
             await _db.SaveChangesAsync();
             return ServiceResult<LikeResult>.Ok(new LikeResult(false, song.LikeCount));
         }
@@ -209,8 +211,7 @@ public class SongService : ISongService
             .OrderByDescending(s => s.CreatedAt)
             .ToListAsync();
 
-        return ServiceResult<List<SongDto>>.Ok(
-            songs.Select(s => MapSong(s, artistId)).ToList());
+        return ServiceResult<List<SongDto>>.Ok(await MapSongsAsync(songs, artistId));
     }
 
     public async Task<ServiceResult<StatsDto>> GetArtistStatsAsync(int artistId)
@@ -227,6 +228,32 @@ public class SongService : ISongService
             s.Id, s.Title, s.CoverImage, s.PlayCount, s.LikeCount)).ToList();
 
         return ServiceResult<StatsDto>.Ok(new StatsDto(totalPlays, totalLikes, tracks));
+    }
+
+    /// <summary>
+    /// Map nhiều Song → SongDto với 1 query duy nhất cho trạng thái liked
+    /// (tránh N+1: mỗi song 1 query Likes).
+    /// </summary>
+    private async Task<List<SongDto>> MapSongsAsync(List<Song> songs, int? currentUserId)
+    {
+        var likedIds = new HashSet<int>();
+        if (currentUserId.HasValue && songs.Count > 0)
+        {
+            var songIds = songs.Select(s => s.Id).ToList();
+            likedIds = (await _db.Likes
+                .AsNoTracking()
+                .Where(l => l.UserId == currentUserId.Value && songIds.Contains(l.SongId))
+                .Select(l => l.SongId)
+                .ToListAsync()).ToHashSet();
+        }
+
+        return songs.Select(s => new SongDto(
+            s.Id, s.Title, s.AudioFile, s.CoverImage,
+            s.ArtistId, s.Artist.Username,
+            s.AlbumId, s.Album?.Name,
+            s.Status, s.RejectReason,
+            s.PlayCount, s.LikeCount,
+            s.CreatedAt, likedIds.Contains(s.Id))).ToList();
     }
 
     private SongDto MapSong(Song s, int? currentUserId)
