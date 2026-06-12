@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MusicApp.DTOs;
@@ -12,7 +14,9 @@ namespace MusicApp.Controllers;
 /// </summary>
 [ApiController]
 [Route("api")]
-[Authorize] // yêu cầu đăng nhập
+// Nhận cả Cookie (browser/Postman giữ cookie) lẫn JWT Bearer (API thuần)
+[Authorize(AuthenticationSchemes =
+    $"{CookieAuthenticationDefaults.AuthenticationScheme},{JwtBearerDefaults.AuthenticationScheme}")]
 public class TestApiController : ControllerBase
 {
     private readonly ISongService _songService;

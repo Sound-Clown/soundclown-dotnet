@@ -58,6 +58,26 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
             int.Parse(auth["ExpireDays"] ?? "7"));
         options.LoginPath = "/login";
         options.AccessDeniedPath = "/login";
+        // API caller (Postman/mobile) cần status code thay vì redirect HTML
+        options.Events = new Microsoft.AspNetCore.Authentication.Cookies.CookieAuthenticationEvents
+        {
+            OnRedirectToLogin = ctx =>
+            {
+                if (ctx.Request.Path.StartsWithSegments("/api"))
+                    ctx.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                else
+                    ctx.Response.Redirect(ctx.RedirectUri);
+                return Task.CompletedTask;
+            },
+            OnRedirectToAccessDenied = ctx =>
+            {
+                if (ctx.Request.Path.StartsWithSegments("/api"))
+                    ctx.Response.StatusCode = StatusCodes.Status403Forbidden;
+                else
+                    ctx.Response.Redirect(ctx.RedirectUri);
+                return Task.CompletedTask;
+            }
+        };
     })
     .AddJwtBearer(options =>
     {
