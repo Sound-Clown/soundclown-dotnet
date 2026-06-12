@@ -299,6 +299,7 @@
     private string _totalTime = "0:00";
     private string _progressPercent => _duration > 0 ? $"{(_current * 100.0 / _duration):F1}" : "0";
     private bool _jsReady;
+    private bool _disposed;
     private int _playCountSongId;
 
     private double _volume = 1.0;
@@ -388,12 +389,14 @@
     [JSInvokable]
     public void OnSongEnded()
     {
+        if (_disposed) return;
         Player.Next();
     }
 
     [JSInvokable]
     public void OnProgress(int currentSeconds, int totalSeconds)
     {
+        if (_disposed) return;
         _current = currentSeconds;
         _duration = totalSeconds;
         _currentTime = FormatDuration(currentSeconds);
@@ -404,6 +407,7 @@
     [JSInvokable]
     public async Task OnPlayThreshold(int songId)
     {
+        if (_disposed) return;
         if (songId == _playCountSongId)
         {
             await SongService.IncrementPlayCountAsync(songId);
@@ -496,9 +500,8 @@
 
     public void Dispose()
     {
+        _disposed = true;
         Player.OnChange -= OnPlayerChange;
         _dotNetRef?.Dispose();
     }
 }
-
-public interface IPlayerBar { }

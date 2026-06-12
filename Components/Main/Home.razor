@@ -75,6 +75,7 @@
 
     private async Task LoadPage(int page)
     {
+        page = Math.Max(1, page);
         _loading = true;
         _page = page;
         _result = await SongService.GetApprovedSongsAsync(page);

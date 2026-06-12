@@ -30,9 +30,9 @@
             <div class="card mb-6">
                 <h2 class="text-base font-medium mb-4">Top bài hát theo lượt phát</h2>
                 <div class="space-y-3">
+                    @{ var maxPlays = _stats.Tracks.Max(t => t.PlayCount); }
                     @foreach (var track in _stats.Tracks.Take(10))
                     {
-                        var maxPlays = _stats.Tracks.Max(t => t.PlayCount);
                         var pct = maxPlays > 0 ? (double)track.PlayCount / maxPlays * 100 : 0;
                         <div>
                             <div class="flex justify-between text-sm mb-1">

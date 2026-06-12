@@ -92,23 +92,38 @@
     private List<SongDto> _songs = new();
     private List<ArtistSearchDto> _artists = new();
     private bool _loading;
+    private bool _disposed;
     private System.Timers.Timer? _debounce;
 
     protected override void OnInitialized()
     {
         _debounce = new System.Timers.Timer(300);
-        _debounce.Elapsed += async (_, _) =>
+        _debounce.Elapsed += OnDebounceElapsed;
+        _debounce.AutoReset = false;
+    }
+
+    // Elapsed chạy trên thread pool dưới dạng async void — exception không được
+    // bắt sẽ kéo sập process, nên toàn bộ thân handler phải nằm trong try/catch.
+    private async void OnDebounceElapsed(object? sender, System.Timers.ElapsedEventArgs e)
+    {
+        try
         {
+            if (_disposed) return;
             if (_query.Length < 2) { _songs = new(); _artists = new(); await InvokeAsync(StateHasChanged); return; }
             _loading = true;
             await InvokeAsync(StateHasChanged);
             var result = await SongService.SearchAsync(_query, CurrentUser.UserId ?? 0);
+            if (_disposed) return;
             _songs = result.Songs;
             _artists = result.Artists;
             _loading = false;
             await InvokeAsync(StateHasChanged);
-        };
-        _debounce.AutoReset = false;
+        }
+        catch (ObjectDisposedException) { /* circuit/component đã dispose */ }
+        catch (Exception)
+        {
+            _loading = false;
+        }
     }
 
     private void OnInput(ChangeEventArgs e)
@@ -143,9 +158,11 @@
 
     public void Dispose()
     {
+        _disposed = true;
         if (_debounce != null)
         {
             _debounce.Stop();
+            _debounce.Elapsed -= OnDebounceElapsed;
             _debounce.Dispose();
             _debounce = null;
         }

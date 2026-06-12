@@ -130,6 +130,7 @@
 
 @code {
 	private bool _sidebarOpen;
+	private bool _disposed;
 	private List<NavItem> _navItems = new();
 
 	protected override void OnInitialized()
@@ -140,7 +141,7 @@
 
 	private void OnPlayerChanged()
 	{
-		InvokeAsync(StateHasChanged);
+		if (!_disposed) InvokeAsync(StateHasChanged);
 	}
 
 	private void CloseSidebarMobile()
@@ -178,6 +179,7 @@
 
 	public void Dispose()
 	{
+		_disposed = true;
 		PlayerService.OnChange -= OnPlayerChanged;
 	}
 
