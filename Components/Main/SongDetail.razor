@@ -1,5 +1,5 @@
 @page "/songs/{Id:int}"
-@rendermode InteractiveServer
+@attribute [Authorize]
 @inject ISongService SongService
 @inject IPlayerService PlayerService
 @inject ICurrentUserService CurrentUser
@@ -126,9 +126,15 @@
     {
         if (_song == null || !CurrentUser.UserId.HasValue) return;
         var result = await SongService.ToggleLikeAsync(_song.Id, CurrentUser.UserId.Value);
-        if (result.IsSuccess)
+        if (result.IsSuccess && result.Data != null)
         {
+            _song = _song with { IsLiked = result.Data.Liked, LikeCount = result.Data.NewCount };
+            PlayerService.UpdateCurrentSongLike(result.Data.Liked, result.Data.NewCount);
             StateHasChanged();
+        }
+        else
+        {
+            Toast.Show(ToastType.Error, result.Error ?? "Lỗi");
         }
     }
 

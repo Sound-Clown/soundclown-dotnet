@@ -12,13 +12,13 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" />
+    <script src="https://cdn.tailwindcss.com/3.4.16"></script>
     <link rel="stylesheet" href="css/app.css" />
     <HeadOutlet />
 </head>
 <body>
     <CascadingAuthenticationState>
-        <Routes />
+        <Routes @rendermode="InteractiveServer" />
     </CascadingAuthenticationState>
     <div id="toast-container" class="toast-container"></div>
     <script src="_framework/blazor.web.js"></script>

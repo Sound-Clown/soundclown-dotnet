@@ -1,24 +1,24 @@
-@rendermode InteractiveServer
 @implements IDisposable
 @inject IPlayerService Player
 @inject ISongService SongService
 @inject ICurrentUserService CurrentUser
 @inject IToastService Toast
 @inject IJSRuntime JSRuntime
+@inject IConfiguration Config
 
-<div class="fixed bottom-0 left-0 right-0 z-40 border-t"
+<div class="sc-player-bar fixed bottom-0 right-0 z-40 border-t"
      style="background: var(--player-bg); border-color: var(--border); box-shadow: 0 -4px 24px rgba(0,0,0,0.4);">
 
     <!-- Progress bar line at very top -->
     <div class="h-0.5 w-full" style="background: #333340;">
-        <div class="h-full transition-all duration-1000"
+        <div class="h-full transition-all duration-150"
              style="background: var(--accent); width: @_progressPercent%;"></div>
     </div>
 
     <!-- Content -->
-    <div class="flex items-center gap-4 px-4 h-16 md:h-20">
+    <div class="sc-player-content flex items-center gap-4 px-4 h-16 md:h-20">
         <!-- Track info -->
-        <div class="flex items-center gap-3 flex-shrink-0" style="width: 220px; max-width: 30vw;">
+        <div class="sc-player-info flex items-center gap-3 min-w-0 flex-1 md:flex-none md:w-[220px]">
             @if (Player.CurrentSong != null)
             {
                 @if (!string.IsNullOrEmpty(Player.CurrentSong.CoverImage))
@@ -36,7 +36,7 @@
                         </svg>
                     </div>
                 }
-                <div class="min-w-0">
+                <div class="min-w-0 flex-1">
                     <p class="text-sm font-medium truncate cursor-pointer"
                        @onclick="ShowOverlay">@Player.CurrentSong.Title</p>
                     <p class="text-xs truncate" style="color: var(--muted-foreground);">@Player.CurrentSong.ArtistUsername</p>
@@ -44,19 +44,20 @@
             }
         </div>
 
-        <!-- Playback controls (center) -->
-        <div class="flex-1 flex flex-col items-center gap-1 md:gap-2">
+        <!-- Playback controls (desktop center only) -->
+        <div class="sc-player-center hidden md:flex flex-1 flex-col items-center gap-1 md:gap-2">
             <div class="flex items-center gap-3 md:gap-5">
-                <button class="btn-ghost p-1.5 hidden md:block" @onclick="() => Player.Prev()">
+                <button class="btn-ghost p-1.5" @onclick="() => Player.Prev()" aria-label="Bài trước">
                     <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                         <polygon points="19 20 9 12 19 4 19 20"/>
                         <line x1="5" y1="19" x2="5" y2="5"/>
                     </svg>
                 </button>
 
-                <button class="w-9 h-9 md:w-11 md:h-11 rounded-full flex items-center justify-center transition-colors"
+                <button class="w-11 h-11 rounded-full flex items-center justify-center transition-colors"
                          style="background: var(--foreground);"
-                         @onclick="TogglePlay">
+                         @onclick="TogglePlay"
+                         aria-label="@(Player.IsPlaying ? "Tạm dừng" : "Phát")">
                     @if (Player.IsPlaying)
                     {
                         <svg width="15" height="15" fill="black" viewBox="0 0 24 24">
@@ -71,7 +72,7 @@
                     }
                 </button>
 
-                <button class="btn-ghost p-1.5 hidden md:block" @onclick="() => Player.Next()">
+                <button class="btn-ghost p-1.5" @onclick="() => Player.Next()" aria-label="Bài sau">
                     <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                         <polygon points="5 4 15 12 5 20 5 4"/>
                         <line x1="19" y1="5" x2="19" y2="19"/>
@@ -79,10 +80,11 @@
                 </button>
             </div>
 
-            <!-- Progress + time (desktop) -->
-            <div class="hidden md:flex items-center gap-2 w-full max-w-md">
+            <!-- Progress + time -->
+            <div class="flex items-center gap-2 w-full max-w-md">
                 <span class="text-xs" style="color: var(--muted-foreground-3);">@_currentTime</span>
-                <input type="range" class="flex-1" style="height: 3px;"
+                <input type="range" class="progress-fill flex-1"
+                       style="height: 4px; --progress: @_progressPercent%;"
                        min="0" max="@_duration" value="@_current"
                        @oninput="Seek" />
                 <span class="text-xs" style="color: var(--muted-foreground-3);">@_totalTime</span>
@@ -90,15 +92,35 @@
         </div>
 
         <!-- Right actions -->
-        <div class="flex items-center gap-2 flex-shrink-0" style="width: 120px; justify-content: flex-end;">
-            <button class="btn-ghost p-1.5 hidden md:block" @onclick="ToggleLike">
+        <div class="sc-player-right flex items-center gap-2 flex-shrink-0 md:w-[220px] md:justify-end">
+            <!-- Mobile play button -->
+            <button class="md:hidden w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+                    style="background: var(--foreground);"
+                    @onclick="TogglePlay"
+                    aria-label="@(Player.IsPlaying ? "Tạm dừng" : "Phát")">
+                @if (Player.IsPlaying)
+                {
+                    <svg width="14" height="14" fill="black" viewBox="0 0 24 24">
+                        <rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>
+                    </svg>
+                }
+                else
+                {
+                    <svg width="14" height="14" fill="black" viewBox="0 0 24 24">
+                        <polygon points="5,3 19,12 5,21"/>
+                    </svg>
+                }
+            </button>
+
+            <!-- Desktop-only like + share -->
+            <button class="btn-ghost p-1.5 hidden md:block" @onclick="ToggleLike" aria-label="Thích">
                 <svg width="16" height="16" fill="@(_liked ? "var(--accent)" : "none")"
                      stroke="@(_liked ? "var(--accent)" : "currentColor")" stroke-width="2" viewBox="0 0 24 24">
                     <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
                 </svg>
             </button>
 
-            <button class="btn-ghost p-1.5" @onclick="Share">
+            <button class="btn-ghost p-1.5 hidden md:block" @onclick="Share" aria-label="Chia sẻ">
                 <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                     <circle cx="18" cy="5" r="3"/>
                     <circle cx="6" cy="12" r="3"/>
@@ -108,7 +130,40 @@
                 </svg>
             </button>
 
-            <button class="btn-ghost p-1.5 md:hidden" @onclick="ShowOverlay">
+            <!-- Volume (desktop only) -->
+            <div class="hidden md:flex items-center gap-1 ml-1">
+                <button class="btn-ghost p-1.5" @onclick="ToggleMute" aria-label="@(_volume == 0 ? "Bật âm" : "Tắt âm")">
+                    @if (_volume == 0)
+                    {
+                        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+                            <line x1="23" y1="9" x2="17" y2="15"/>
+                            <line x1="17" y1="9" x2="23" y2="15"/>
+                        </svg>
+                    }
+                    else if (_volume < 0.5)
+                    {
+                        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+                            <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+                        </svg>
+                    }
+                    else
+                    {
+                        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+                            <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/>
+                        </svg>
+                    }
+                </button>
+                <input type="range" class="progress-fill"
+                       style="width: 80px; height: 4px; --progress: @_volumePercent%;"
+                       min="0" max="100" value="@((int)(_volume * 100))"
+                       @oninput="ChangeVolume" aria-label="Âm lượng" />
+            </div>
+
+            <!-- Mobile expand -->
+            <button class="btn-ghost p-1.5 md:hidden" @onclick="ShowOverlay" aria-label="Mở rộng">
                 <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                     <polyline points="18 15 12 9 6 15"/>
                 </svg>
@@ -131,13 +186,13 @@
         <div class="relative flex flex-col h-full">
             <!-- Header -->
             <div class="flex items-center justify-between p-4">
-                <button @onclick="() => _overlayOpen = false">
+                <button @onclick="() => _overlayOpen = false" aria-label="Thu nhỏ">
                     <svg width="20" height="20" fill="none" stroke="var(--muted-foreground)" stroke-width="2" viewBox="0 0 24 24">
-                        <polyline points="18 15 12 9 6 15"/>
+                        <polyline points="6 9 12 15 18 9"/>
                     </svg>
                 </button>
                 <p class="text-xs font-medium uppercase tracking-wider" style="color: var(--muted-foreground);">Đang phát</p>
-                <button @onclick="() => _overlayOpen = false">
+                <button @onclick="() => _overlayOpen = false" aria-label="Đóng">
                     <svg width="20" height="20" fill="none" stroke="var(--muted-foreground)" stroke-width="2" viewBox="0 0 24 24">
                         <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
                     </svg>
@@ -168,8 +223,8 @@
 
                 <!-- Progress -->
                 <div class="w-full max-w-xs">
-                    <input type="range" class="w-full"
-                           style="height: 4px;"
+                    <input type="range" class="progress-fill w-full"
+                           style="height: 4px; --progress: @_progressPercent%;"
                            min="0" max="@_duration" value="@_current"
                            @oninput="SeekOverlay" />
                     <div class="flex justify-between text-xs mt-1" style="color: var(--muted-foreground-3);">
@@ -244,7 +299,12 @@
     private string _totalTime = "0:00";
     private string _progressPercent => _duration > 0 ? $"{(_current * 100.0 / _duration):F1}" : "0";
     private bool _jsReady;
+    private bool _disposed;
     private int _playCountSongId;
+
+    private double _volume = 1.0;
+    private double _previousVolume = 1.0;
+    private string _volumePercent => $"{(_volume * 100):F0}";
 
     private DotNetObjectReference<PlayerBar>? _dotNetRef;
 
@@ -261,31 +321,48 @@
             await JSRuntime.InvokeVoidAsync("musicPlayer.init");
             await JSRuntime.InvokeVoidAsync("musicPlayer.setDotNetRef", _dotNetRef);
             _jsReady = true;
+            if (Player.CurrentSong != null && Player.IsPlaying)
+                await HandlePlayerChangeAsync();
         }
     }
 
-    private async void OnPlayerChange()
+    private void OnPlayerChange()
     {
-        _liked = Player.CurrentSong?.IsLiked ?? false;
-        StateHasChanged();
+        _ = InvokeAsync(HandlePlayerChangeAsync);
+    }
 
-        if (Player.CurrentSong != null)
+    private async Task HandlePlayerChangeAsync()
+    {
+        try
         {
-            _playCountSongId = Player.CurrentSong.Id;
+            _liked = Player.CurrentSong?.IsLiked ?? false;
+            StateHasChanged();
 
-            if (Player.IsPlaying)
+            if (!_jsReady) return;
+
+            if (Player.CurrentSong != null)
             {
-                await JSRuntime.InvokeVoidAsync("musicPlayer.play", Player.CurrentSong.AudioUrl);
-                _ = SchedulePlayCount();
+                _playCountSongId = Player.CurrentSong.Id;
+
+                if (Player.IsPlaying)
+                {
+                    await JSRuntime.InvokeVoidAsync("musicPlayer.play", Player.CurrentSong.AudioUrl);
+                    _ = SchedulePlayCount();
+                }
+                else
+                {
+                    await JSRuntime.InvokeVoidAsync("musicPlayer.pause");
+                }
             }
             else
             {
                 await JSRuntime.InvokeVoidAsync("musicPlayer.pause");
             }
         }
-        else
+        catch (JSDisconnectedException) { /* circuit gone */ }
+        catch (Exception ex)
         {
-            await JSRuntime.InvokeVoidAsync("musicPlayer.pause");
+            Console.Error.WriteLine($"PlayerBar HandlePlayerChange error: {ex.Message}");
         }
     }
 
@@ -312,12 +389,14 @@
     [JSInvokable]
     public void OnSongEnded()
     {
+        if (_disposed) return;
         Player.Next();
     }
 
     [JSInvokable]
     public void OnProgress(int currentSeconds, int totalSeconds)
     {
+        if (_disposed) return;
         _current = currentSeconds;
         _duration = totalSeconds;
         _currentTime = FormatDuration(currentSeconds);
@@ -328,6 +407,7 @@
     [JSInvokable]
     public async Task OnPlayThreshold(int songId)
     {
+        if (_disposed) return;
         if (songId == _playCountSongId)
         {
             await SongService.IncrementPlayCountAsync(songId);
@@ -355,10 +435,16 @@
     private async Task ToggleLike()
     {
         if (Player.CurrentSong == null || CurrentUser.UserId == null) return;
+        var songId = Player.CurrentSong.Id;
         _liked = !_liked;
         StateHasChanged();
-        var result = await SongService.ToggleLikeAsync(Player.CurrentSong.Id, CurrentUser.UserId.Value);
-        if (!result.IsSuccess)
+        var result = await SongService.ToggleLikeAsync(songId, CurrentUser.UserId.Value);
+        if (result.IsSuccess && result.Data != null)
+        {
+            Player.UpdateCurrentSongLike(result.Data.Liked, result.Data.NewCount);
+            _liked = result.Data.Liked;
+        }
+        else
         {
             _liked = !_liked;
             Toast.Show(ToastType.Error, result.Error ?? "Lỗi");
@@ -369,8 +455,36 @@
     private async Task Share()
     {
         if (Player.CurrentSong == null) return;
-        await JSRuntime.InvokeVoidAsync("copyToClipboard", $"/songs/{Player.CurrentSong.Id}");
+        var baseUrl = (Config["App:BaseUrl"] ?? "").TrimEnd('/');
+        var url = string.IsNullOrEmpty(baseUrl)
+            ? $"/songs/{Player.CurrentSong.Id}"
+            : $"{baseUrl}/songs/{Player.CurrentSong.Id}";
+        await JSRuntime.InvokeVoidAsync("copyToClipboard", url);
         Toast.Show(ToastType.Success, "Đã copy link!");
+    }
+
+    private async Task ChangeVolume(ChangeEventArgs e)
+    {
+        if (double.TryParse(e.Value?.ToString(), out var v))
+        {
+            _volume = Math.Clamp(v / 100.0, 0.0, 1.0);
+            if (_volume > 0) _previousVolume = _volume;
+            if (_jsReady) await JSRuntime.InvokeVoidAsync("musicPlayer.setVolume", _volume);
+        }
+    }
+
+    private async Task ToggleMute()
+    {
+        if (_volume > 0)
+        {
+            _previousVolume = _volume;
+            _volume = 0;
+        }
+        else
+        {
+            _volume = _previousVolume > 0 ? _previousVolume : 1.0;
+        }
+        if (_jsReady) await JSRuntime.InvokeVoidAsync("musicPlayer.setVolume", _volume);
     }
 
     private void ShowOverlay() => _overlayOpen = true;
@@ -386,9 +500,8 @@
 
     public void Dispose()
     {
+        _disposed = true;
         Player.OnChange -= OnPlayerChange;
         _dotNetRef?.Dispose();
     }
 }
-
-public interface IPlayerBar { }

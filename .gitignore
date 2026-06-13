@@ -20,3 +20,8 @@ Thumbs.db
 
 # Documents
 /docs/
+
+# Test artifacts (generated, not source)
+tests/*/TestResults/
+tests/SoundClown.E2ETests/Screenshots/
+tests/fixtures/files/

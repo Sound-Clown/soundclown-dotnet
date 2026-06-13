@@ -35,6 +35,18 @@ html, body {
 
 a { color: inherit; text-decoration: none; }
 
+/* Suppress focus outline on FocusOnNavigate target (h1) — Blazor focuses it on every
+   navigation/reload, and Chrome treats F5 as recent-keyboard so :focus-visible matches.
+   Headings aren't tab-stops anyway, so dropping the outline is safe for a11y. */
+h1:focus, h2:focus, h3:focus, h4:focus, h5:focus, h6:focus,
+[tabindex="-1"]:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* For everything else: only show focus ring for real keyboard nav. */
+:focus:not(:focus-visible) { outline: none; }
+
 /* ── Scrollbar ───────────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 4px; height: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
@@ -155,6 +167,8 @@ textarea.input {
 /* ── Range / Slider ──────────────────────────────────────────── */
 input[type="range"] {
   -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
   height: 4px;
   border-radius: 2px;
   background: #333340;
@@ -169,6 +183,28 @@ input[type="range"]::-webkit-slider-thumb {
   box-shadow: 0 0 4px rgba(245, 166, 35, 0.5);
   cursor: pointer;
   -webkit-appearance: none;
+  border: none;
+}
+input[type="range"]::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 4px rgba(245, 166, 35, 0.5);
+  cursor: pointer;
+  border: none;
+}
+input[type="range"]::-moz-range-track {
+  background: #333340;
+  height: 4px;
+  border-radius: 2px;
+  border: none;
+}
+/* Firefox: native "progress" portion before the thumb */
+input[type="range"]::-moz-range-progress {
+  background: var(--accent);
+  height: 4px;
+  border-radius: 2px;
 }
 
 /* ── Select ──────────────────────────────────────────────────── */
@@ -189,6 +225,59 @@ select.input option {
 /* ── Page ────────────────────────────────────────────────────── */
 .page-content { padding: 2rem; }
 @media (max-width: 768px) { .page-content { padding: 1rem; } }
+
+/* ── Sidebar / Player critical layout (fallback if Tailwind CDN fails) ── */
+/* Desktop: sidebar full height, PlayerBar starts after sidebar (Spotify-style). */
+/* Mobile: sidebar overlay full height, PlayerBar spans full width. */
+@media (max-width: 767px) {
+  .sc-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    width: 240px;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+    z-index: 50;
+    background: var(--background);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+  }
+  .sc-sidebar.is-open { transform: translateX(0); }
+  .sc-sidebar-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 40;
+  }
+  .sc-mobile-header { display: flex; }
+  .sc-player-bar { left: 0; }
+}
+@media (min-width: 768px) {
+  .sc-sidebar {
+    position: static;
+    width: 240px;
+    flex-shrink: 0;
+    transform: none;
+    height: 100vh;
+    background: var(--background);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+  }
+  .sc-sidebar-backdrop { display: none !important; }
+  .sc-mobile-header { display: none; }
+  .sc-player-bar { left: 240px; }
+}
+
+/* Player bar mobile: stack cleanly, no fixed widths */
+@media (max-width: 767px) {
+  .sc-player-content { padding: 0 0.75rem; height: 64px; gap: 0.5rem; }
+  .sc-player-info { flex: 1 1 auto; min-width: 0; }
+  .sc-player-center { display: none; }
+  .sc-player-right { gap: 0.25rem; }
+}
 
 /* ── Badges ──────────────────────────────────────────────────── */
 .badge {
@@ -410,12 +499,17 @@ select.input option {
 }
 
 /* ── Custom range fill via inline style ──────────────────────── */
+/* Chromium: paint the track background with a hard-stop gradient at --progress. */
 input[type="range"].progress-fill {
   background: linear-gradient(
     to right,
     var(--accent) var(--progress, 0%),
     #333340 var(--progress, 0%)
   );
+}
+/* Firefox uses ::-moz-range-progress automatically — already amber above. */
+input[type="range"].progress-fill::-moz-range-track {
+  background: #333340;
 }
 
 /* ── Responsive grid helpers ─────────────────────────────────── */

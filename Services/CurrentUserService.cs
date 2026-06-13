@@ -4,40 +4,45 @@ using MusicApp.Enums;
 
 namespace MusicApp.Services;
 
-public class CurrentUserService : ICurrentUserService, IDisposable
+public sealed class CurrentUserService : ICurrentUserService, IDisposable
 {
     private readonly AuthenticationStateProvider _authProvider;
-    private AuthenticationState? _lastState;
+    private readonly IHttpContextAccessor _httpContextAccessor;
     private ClaimsPrincipal? _user;
 
-    public CurrentUserService(AuthenticationStateProvider authProvider)
+    public CurrentUserService(
+        AuthenticationStateProvider authProvider,
+        IHttpContextAccessor httpContextAccessor)
     {
         _authProvider = authProvider;
+        _httpContextAccessor = httpContextAccessor;
         _authProvider.AuthenticationStateChanged += OnAuthChanged;
-        SyncUser();
+        TrySyncUser();
     }
 
     private void OnAuthChanged(Task<AuthenticationState> _)
     {
         _user = null;
-        _lastState = null;
     }
 
-    private void SyncUser()
+    private void TrySyncUser()
     {
-        _lastState = _authProvider.GetAuthenticationStateAsync().GetAwaiter().GetResult();
-        _user = _lastState.User;
+        try
+        {
+            _user = _authProvider.GetAuthenticationStateAsync().GetAwaiter().GetResult().User;
+        }
+        catch (InvalidOperationException)
+        {
+            // Ngoài Blazor circuit (API controller) — ServerAuthenticationStateProvider
+            // không dùng được; lấy principal từ HttpContext (cookie hoặc JWT bearer).
+            _user = _httpContextAccessor.HttpContext?.User;
+        }
     }
 
     private void EnsureSynced()
     {
         if (_user != null) return;
-        var current = _authProvider.GetAuthenticationStateAsync().GetAwaiter().GetResult();
-        if (current != _lastState)
-        {
-            _lastState = current;
-            _user = current.User;
-        }
+        TrySyncUser();
     }
 
     public int? UserId

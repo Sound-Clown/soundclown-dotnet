@@ -1,5 +1,4 @@
 @page "/register"
-@rendermode InteractiveServer
 @layout AuthLayout
 @inject IAuthService AuthService
 @inject NavigationManager Nav
@@ -111,7 +110,7 @@
 
         <button type="submit" class="btn-primary w-full" disabled="@_loading">
             @if (_loading) {
-                <span class="w-4 h-4 border-2 border-t-black rounded-full animate-spin"></span>
+                <span class="inline-block w-4 h-4 border-2 border-t-black rounded-full animate-spin"></span>
             }
             Tạo tài khoản
         </button>

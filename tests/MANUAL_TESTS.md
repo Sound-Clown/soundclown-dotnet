@@ -6,17 +6,17 @@
 
 ---
 
-## 📋 Tổng Quan Testcase
+## Tổng quan testcase
 
-| Tool | Số lượng | Testcase |
-|------|----------|----------|
-| 🖥️ Trình duyệt (thủ công) | 12 | TC-01,02,06,07,10,13,14,17,18,19 + TC-08,09 (timing) |
-| 📮 Postman (API) | 8 | TC-03,04,05,11,12,15,16,20 |
-| **Tổng** | **20** | |
+| Tool                   | Số lượng | Testcase                                             |
+| ---------------------- | -------- | ---------------------------------------------------- |
+| Trình duyệt (thủ công) | 12       | TC-01,02,06,07,10,13,14,17,18,19 + TC-08,09 (timing) |
+| Postman (API)          | 8        | TC-03,04,05,11,12,15,16,20                           |
+| **Tổng**               | **20**   |                                                      |
 
 ---
 
-## 🖥️ PHẦN 1 — Test Thủ Công (12 TC)
+## Phần 1 — Test thủ công (12 TC)
 
 ### Cách chụp ảnh nhanh
 
@@ -30,13 +30,13 @@
 
 ---
 
-### TC-01 — Upload bài hát thành công ✅
+### TC-01 — Upload bài hát thành công
 
 **Loại**: Black-box, Positive, Functional
 
 **Tài khoản**: `artist@demo.com` / `Artist123!`
 
-**File test**: `test/files/sample_5mb.mp3` (đã chuẩn bị sẵn)
+**File test**: `tests/fixtures/files/sample_5mb.mp3` (đã chuẩn bị sẵn)
 
 **Các bước**:
 
@@ -44,11 +44,12 @@
 2. Vào **/artist/upload**
 3. Nhập Title: `Giấc Mơ Mùa Hè`
 4. Drop hoặc chọn file `sample_5mb.mp3` vào vùng upload audio
-5. *(Tùy chọn)* Upload ảnh bìa `test/files/sample_cover.jpg`
+5. _(Tùy chọn)_ Upload ảnh bìa `tests/fixtures/files/sample_cover.jpg`
 6. Nhấn **Upload bài hát**
 7. Quan sát toast thành công
 
 **Kết quả mong đợi**:
+
 - Toast: "Upload thành công! Bài hát đang chờ duyệt."
 - Sang **/artist/songs** thấy bài mới với badge **Pending** (màu vàng)
 
@@ -56,11 +57,11 @@
 
 ---
 
-### TC-02 — Upload file .exe đổi đuôi thành .mp3 ❌
+### TC-02 — Upload file .exe đổi đuôi thành .mp3
 
 **Loại**: Black-box, Negative, Validation
 
-**File test**: `test/files/malicious.exe` (file .exe đã đổi tên thành `malicious.mp3`)
+**File test**: `tests/fixtures/files/malicious.exe` (file .exe đã đổi tên thành `malicious.mp3`)
 
 **Các bước**:
 
@@ -75,11 +76,11 @@
 
 ---
 
-### TC-06 — Upload file đúng 10MB ✅
+### TC-06 — Upload file đúng 10MB
 
 **Loại**: Boundary Testing
 
-**File test**: `test/files/exact_10mb.mp3` (file chính xác 10,485,760 bytes)
+**File test**: `tests/fixtures/files/exact_10mb.mp3` (file chính xác 10,485,760 bytes)
 
 **Các bước**:
 
@@ -94,11 +95,11 @@
 
 ---
 
-### TC-07 — Upload file vượt 10MB ❌
+### TC-07 — Upload file vượt 10MB
 
 **Loại**: Boundary Testing
 
-**File test**: `test/files/over_10mb.mp3` (~10.5MB)
+**File test**: `tests/fixtures/files/over_10mb.mp3` (~10.5MB)
 
 **Các bước**:
 
@@ -128,7 +129,7 @@
 
 ---
 
-### TC-13 — Admin Reject không nhập lý do ❌
+### TC-13 — Admin Reject không nhập lý do
 
 **Loại**: Black-box, Validation
 
@@ -149,7 +150,7 @@
 
 ---
 
-### TC-14 — Admin tự khóa tài khoản mình ❌
+### TC-14 — Admin tự khóa tài khoản mình
 
 **Loại**: Black-box, Security
 
@@ -196,7 +197,7 @@
 **Các bước**:
 
 1. Vào **/search**
-2. Nhập từ khóa khớp với ít nhất 1 bài hát (VD: "Summer" nếu có bài "Summer Vibes")
+2. Nhập từ khóa khớp với ít nhất 1 bài hát (VD: "Giấc Mơ" — seed data có bài "Giấc Mơ Mùa Hè")
 3. Chờ kết quả (debounce ~300ms)
 
 **Kết quả mong đợi**: Hiển thị danh sách bài hát khớp.
@@ -221,7 +222,7 @@
 
 ---
 
-### TC-08 — Play ≥30 giây → Play count tăng 1 ⏱️
+### TC-08 — Play ≥30 giây → Play count tăng 1
 
 **Loại**: Black-box, Functional (timing-sensitive)
 
@@ -233,6 +234,7 @@
 4. Vào **/artist/stats** (nếu là artist) HOẶC kiểm tra trong database
 
 **Verify DB**:
+
 ```sql
 -- Xem play_count trước
 SELECT id, title, play_count FROM songs WHERE id = <songId>;
@@ -247,7 +249,7 @@ SELECT id, title, play_count FROM songs WHERE id = <songId>;
 
 ---
 
-### TC-09 — Play <30 giây → Play count không đổi ⏱️
+### TC-09 — Play <30 giây → Play count không đổi
 
 **Loại**: Black-box, Negative (timing-sensitive)
 
@@ -265,7 +267,7 @@ SELECT id, title, play_count FROM songs WHERE id = <songId>;
 
 ---
 
-## 📮 PHẦN 2 — Test API bằng Postman (8 TC)
+## Phần 2 — Test API bằng Postman (8 TC)
 
 ### Bước 1 — Cài đặt Postman
 
@@ -278,23 +280,23 @@ https://www.postman.com/downloads/
 
 1. Mở Postman
 2. Nhấn **Import** (góc trên trái)
-3. Kéo file `test/postman/SoundClown_Test_Collection.json` vào
+3. Kéo file `tests/postman/SoundClown_Test_Collection.json` vào
 4. Collection **"SoundClown - Test Collection"** xuất hiện trong sidebar
 
 ### Bước 3 — Tạo Environment
 
-1. Nhấn biểu tượng **⚙️** (gears) góc trên phải → **Manage Environments**
+1. Nhấn biểu tượng **gears** góc trên phải → **Manage Environments**
 2. Nhấn **Add**
 3. Điền:
 
-| Variable | Initial Value | Current Value |
-|----------|-------------|---------------|
-| `baseUrl` | `http://localhost:5000` | `http://localhost:5000` |
-| `tokenListener` | *(trống)* | *(trống)* |
-| `tokenArtist` | *(trống)* | *(trống)* |
-| `tokenAdmin` | *(trống)* | *(trống)* |
-| `songId` | *(trống)* | *(trống)* |
-| `albumId` | *(trống)* | *(trống)* |
+| Variable        | Initial Value           | Current Value           |
+| --------------- | ----------------------- | ----------------------- |
+| `baseUrl`       | `http://localhost:5000` | `http://localhost:5000` |
+| `tokenListener` | _(trống)_               | _(trống)_               |
+| `tokenArtist`   | _(trống)_               | _(trống)_               |
+| `tokenAdmin`    | _(trống)_               | _(trống)_               |
+| `songId`        | _(trống)_               | _(trống)_               |
+| `albumId`       | _(trống)_               | _(trống)_               |
 
 4. Chọn environment vừa tạo là **Active**
 
@@ -316,37 +318,39 @@ https://www.postman.com/downloads/
 
 ### Bước 5 — Chạy các Test Request
 
-#### TC-03 — Like (nhánh Insert) ✅
+#### TC-03 — Like (nhánh Insert)
 
 1. Folder **"=== 1. LIKE / UNLIKE ==="**
 2. Mở **"TC-03 Like (nhánh Insert)"** — Bearer token đã được cấu hình sẵn trong request
 3. Nhấn **Send**
 
 **Kết quả mong đợi**: HTTP 200, Body:
+
 ```json
-{ "isLiked": true, "likeCount": 11 }
+{ "liked": true, "newCount": 11 }
 ```
 
 **Ảnh cần chụp**: Response body JSON trong Postman.
 
 ---
 
-#### TC-04 — Unlike (nhánh Delete) ✅
+#### TC-04 — Unlike (nhánh Delete)
 
 1. **"TC-04 Unlike (nhánh Delete)"**
 2. Token: `{{tokenAdmin}}`
 3. Nhấn **Send** (ngay sau TC-03, cùng bài)
 
 **Kết quả mong đợi**: HTTP 200, Body:
+
 ```json
-{ "isLiked": false, "likeCount": 10 }
+{ "liked": false, "newCount": 10 }
 ```
 
 **Ảnh cần chụp**: Response body JSON.
 
 ---
 
-#### TC-05 — Listener/Artist gọi API Admin → 403 ❌
+#### TC-05 — Listener/Artist gọi API Admin → 403
 
 1. Folder **"=== 2. ADMIN REVIEW ==="**
 2. **"TC-05 Listener gọi API Admin → 403"** — Token: `{{tokenListener}}`
@@ -359,13 +363,14 @@ https://www.postman.com/downloads/
 
 ---
 
-#### TC-11 — Review Approve (nhánh Approve) ✅
+#### TC-11 — Review Approve (nhánh Approve)
 
 1. **"TC-11 Review Approve (nhánh approve)"**
 2. Token: `{{tokenAdmin}}`
 3. Nhấn **Send**
 
 **Kết quả mong đợi**: HTTP 200:
+
 ```json
 { "message": "Thành công.", "action": "approve" }
 ```
@@ -376,7 +381,7 @@ https://www.postman.com/downloads/
 
 ---
 
-#### TC-12 — Review Reject (nhánh Reject) ✅
+#### TC-12 — Review Reject (nhánh Reject)
 
 1. **"TC-12 Review Reject (nhánh reject)"**
 2. Token: `{{tokenAdmin}}`
@@ -384,6 +389,7 @@ https://www.postman.com/downloads/
 4. Nhấn **Send**
 
 **Kết quả mong đợi**: HTTP 200:
+
 ```json
 { "message": "Thành công.", "action": "reject" }
 ```
@@ -392,7 +398,7 @@ https://www.postman.com/downloads/
 
 ---
 
-#### TC-14 — Admin tự khóa mình → Lỗi ❌
+#### TC-14 — Admin tự khóa mình → Lỗi
 
 1. Folder **"=== 3. LOCK USER ==="**
 2. **"TC-14 Admin tự khóa mình → lỗi"**
@@ -401,6 +407,7 @@ https://www.postman.com/downloads/
 5. Nhấn **Send**
 
 **Kết quả mong đợi**: HTTP 400 hoặc 403:
+
 ```json
 { "error": "Không thể khóa tài khoản của chính mình." }
 ```
@@ -409,7 +416,7 @@ https://www.postman.com/downloads/
 
 ---
 
-#### TC-15 — ToggleLockUser hợp lệ ✅
+#### TC-15 — ToggleLockUser hợp lệ
 
 1. **"TC-15 ToggleLockUser hợp lệ"**
 2. Token: `{{tokenAdmin}}`
@@ -417,16 +424,18 @@ https://www.postman.com/downloads/
 4. Nhấn **Send**
 
 **Kết quả mong đợi**: HTTP 200:
+
 ```json
 { "message": "Đã khóa.", "isActive": false }
 ```
-*(Chạy lần 2 sẽ toggle ngược: "Đã mở khóa.", "isActive": true)*
+
+_(Chạy lần 2 sẽ toggle ngược: "Đã mở khóa.", "isActive": true)_
 
 **Ảnh cần chụp**: Response body JSON.
 
 ---
 
-#### TC-16 — Artist A sửa bài Artist B → 403 ❌
+#### TC-16 — Artist A sửa bài Artist B → 403
 
 1. Folder **"=== 4. SECURITY ==="**
 2. **"TC-16 Artist A sửa bài Artist B → 403"**
@@ -436,6 +445,7 @@ https://www.postman.com/downloads/
 6. Nhấn **Send**
 
 **Kết quả mong đợi**: HTTP **403**:
+
 ```json
 { "error": "Không tìm thấy bài hát hoặc bạn không có quyền." }
 ```
@@ -444,7 +454,7 @@ https://www.postman.com/downloads/
 
 ---
 
-#### TC-20 — Artist thêm bài người khác vào album ❌
+#### TC-20 — Artist thêm bài người khác vào album
 
 1. **"TC-20 Artist thêm bài người khác vào album"**
 2. Token: `{{tokenArtist}}`
@@ -453,6 +463,7 @@ https://www.postman.com/downloads/
 5. Nhấn **Send**
 
 **Kết quả mong đợi**: HTTP **400**:
+
 ```json
 { "error": "Bài hát không hợp lệ." }
 ```
@@ -461,7 +472,7 @@ https://www.postman.com/downloads/
 
 ---
 
-## 🔧 PHẦN 3 — Bonus: Kiểm Tra Database
+## Phần 3 — Kiểm tra database (bonus)
 
 ### Cách 1 — psql trong terminal
 
@@ -490,6 +501,7 @@ https://dbeaver.io/download/
 ```
 
 Connection:
+
 ```
 Host:     localhost
 Port:     5432
@@ -500,13 +512,13 @@ Password: postgres
 
 ---
 
-## ✅ Checklist Tổng Hợp
+## Checklist tổng hợp
 
 ```
 ☐ TC-01  [Manual]   Upload thành công → chụp toast + My Songs (badge Pending)
 ☐ TC-02  [Manual]   Upload .exe đổi .mp3 → chụp lỗi MIME
-☐ TC-03  [Postman]  POST /api/songs/{id}/like → chụp JSON {isLiked: true}
-☐ TC-04  [Postman]  POST /api/songs/{id}/like → chụp JSON {isLiked: false}
+☐ TC-03  [Postman]  POST /api/songs/{id}/like → chụp JSON {liked: true}
+☐ TC-04  [Postman]  POST /api/songs/{id}/like → chụp JSON {liked: false}
 ☐ TC-05  [Postman]  POST /api/admin/... với Listener → chụp HTTP 403
 ☐ TC-05  [Postman]  POST /api/admin/... với Artist → chụp HTTP 403
 ☐ TC-06  [Manual]   Upload đúng 10MB → chụp thành công
@@ -530,34 +542,39 @@ Tổng: 11 Manual + 8 Postman = 19 test thực hiện (TC-14 + TC-05 mỗi cái 
 
 ---
 
-## 📁 Cấu Trúc Thư Mục
+## Cấu trúc thư mục
 
 ```
 soundclown-mvp/
-├── test/
-│   ├── TEST_GUIDE.md                         ← Hướng dẫn này
-│   ├── create_test_files.sh                   ← Script tạo file test (chạy 1 lần)
+├── tests/
+│   ├── README.md                            ← Index/quick start cho tất cả test
+│   ├── MANUAL_TESTS.md                      ← Hướng dẫn này (20 manual TC)
 │   ├── postman/
 │   │   └── SoundClown_Test_Collection.json  ← Import vào Postman
-│   └── files/                               ← File test (tạo bằng script trên)
-│       ├── malicious.mp3                     ← file .exe đổi tên — TC-02
-│       ├── exact_10mb.mp3                   ← file 10MB — TC-06
-│       ├── over_10mb.mp3                    ← file 10.5MB — TC-07
-│       └── sample_5mb.mp3                  ← file 5MB — TC-01
+│   ├── fixtures/
+│   │   ├── create_test_files.sh             ← Script tạo file test (chạy 1 lần)
+│   │   └── files/                           ← File test (tạo bằng script trên)
+│   │       ├── malicious.mp3                ← file .exe đổi tên — TC-02
+│   │       ├── exact_10mb.mp3               ← file 10MB — TC-06
+│   │       ├── over_10mb.mp3                ← file 10.5MB — TC-07
+│   │       └── sample_5mb.mp3               ← file 5MB — TC-01
+│   ├── SoundClown.UnitTests/                ← 16 xUnit unit test
+│   └── SoundClown.E2ETests/                 ← 5 Playwright E2E test
 ├── Controllers/
-│   ├── AuthController.cs                    ← Đã thêm JWT token trong response login
+│   ├── AuthController.cs                    ← JWT token trong response login
 │   └── TestApiController.cs                 ← API endpoints cho Postman test
-└── Program.cs                               ← Đã thêm JWT Bearer authentication
+└── Program.cs                               ← JWT Bearer authentication
 ```
 
 **Tạo file test** (chạy 1 lần duy nhất):
+
 ```bash
-bash test/create_test_files.sh
+bash tests/fixtures/create_test_files.sh
 ```
 
 ---
 
-## ⚠️ Lưu Ý Quan Trọng
+## Lưu ý quan trọng
 
 1. **Postman + JWT Bearer Auth**: App đã được cấu hình JWT Bearer authentication. Sau khi login thành công, `/auth/login` trả về `{ token: "...", user: {...} }` — token này được tự động lưu vào biến Postman bởi script trong tab Tests của mỗi request Login. Dùng token này trong header `Authorization: Bearer <token>` cho các API test.
 
@@ -565,20 +582,21 @@ bash test/create_test_files.sh
 
 3. **TC-08/TC-09**: Hai testcase này cần timing thực tế. Không thể test bằng Postman vì cần browser phát audio. Chạy thủ công trên trình duyệt.
 
-4. **File test**: Các file trong `test/files/` cần được tạo thủ công (xem phần "Tạo file test" bên dưới).
+4. **File test**: Các file trong `tests/fixtures/files/` cần được tạo thủ công (xem phần "Tạo file test" bên dưới).
 
 ---
 
-## 🛠️ Tạo File Test
+## Tạo file test
 
 Chạy script tạo file (cần Linux/macOS/WSL):
 
 ```bash
 cd soundclown-mvp
-bash test/create_test_files.sh
+bash tests/fixtures/create_test_files.sh
 ```
 
-Script sẽ tạo 4 file trong `test/files/`:
+Script sẽ tạo 4 file trong `tests/fixtures/files/`:
+
 - `malicious.mp3` — 2KB random (mô phỏng .exe đổi tên) → TC-02
 - `exact_10mb.mp3` — 10,485,760 bytes → TC-06
 - `over_10mb.mp3` — 11,010,048 bytes → TC-07

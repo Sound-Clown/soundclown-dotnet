@@ -1,4 +1,15 @@
-globalThis.copyToClipboard = (text) => navigator.clipboard.writeText(text);
+globalThis.copyToClipboard = (text) =>
+    navigator.clipboard.writeText(text).catch(() => {
+        // Clipboard API cần secure context (https/localhost) — fallback cũ
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        ta.remove();
+    });
 globalThis.scrollToTop = () => window.scrollTo(0, 0);
 
 // Trigger a file input click (for drag-and-drop or custom click)
@@ -51,7 +62,9 @@ globalThis.showToast = (type, message) => {
 
     const el = document.createElement('div');
     el.className = `toast toast-${type}`;
-    el.innerHTML = `<span>${message}</span>`;
+    const span = document.createElement('span');
+    span.textContent = message; // textContent — message không bao giờ được parse thành HTML
+    el.appendChild(span);
     container.appendChild(el);
 
     setTimeout(() => {

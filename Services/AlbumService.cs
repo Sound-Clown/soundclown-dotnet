@@ -128,7 +128,7 @@ public class AlbumService : IAlbumService
         return ServiceResult.Ok();
     }
 
-    private AlbumDto MapAlbum(Album a) =>
+    private static AlbumDto MapAlbum(Album a) =>
         new(a.Id, a.Name, a.CoverImage, a.ArtistId, a.Artist.Username,
             a.Songs.Count, a.CreatedAt,
             a.Songs.OrderBy(s => s.CreatedAt).Select(s => new SongDto(
@@ -138,7 +138,7 @@ public class AlbumService : IAlbumService
                 s.Status, s.RejectReason,
                 s.PlayCount, s.LikeCount, s.CreatedAt, false)).ToList());
 
-    private AlbumListDto MapAlbumList(Album a) =>
+    private static AlbumListDto MapAlbumList(Album a) =>
         new(a.Id, a.Name, a.CoverImage, a.ArtistId, a.Artist.Username,
             a.Songs.Count, a.CreatedAt);
 }

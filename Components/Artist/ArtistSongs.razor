@@ -1,5 +1,4 @@
 @page "/artist/songs"
-@rendermode InteractiveServer
 @attribute [Authorize(Roles = "Artist")]
 @inject ISongService SongService
 @inject IAlbumService AlbumService
@@ -201,7 +200,7 @@
             <div class="flex justify-end gap-3">
                 <button class="btn-ghost" @onclick="CloseUpload">Hủy</button>
                 <button class="btn-primary" @onclick="DoUpload" disabled="@_upLoading">
-                    @if (_upLoading) { <span class="w-4 h-4 border-2 border-t-black rounded-full animate-spin"></span> }
+                    @if (_upLoading) { <span class="inline-block w-4 h-4 border-2 border-t-black rounded-full animate-spin"></span> }
                     Upload
                 </button>
             </div>
@@ -287,7 +286,7 @@
             <div class="flex justify-end gap-3">
                 <button class="btn-ghost" @onclick="() => _editSong = null">Hủy</button>
                 <button class="btn-primary" @onclick="SaveEdit" disabled="@_editLoading">
-                    @if (_editLoading) { <span class="w-4 h-4 border-2 border-t-black rounded-full animate-spin"></span> }
+                    @if (_editLoading) { <span class="inline-block w-4 h-4 border-2 border-t-black rounded-full animate-spin"></span> }
                     Lưu
                 </button>
             </div>

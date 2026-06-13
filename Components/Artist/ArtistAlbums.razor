@@ -1,6 +1,5 @@
 @page "/artist/albums"
 @attribute [Authorize(Roles = "Artist")]
-@rendermode InteractiveServer
 @inject IAlbumService AlbumService
 @inject ISongService SongService
 @inject ICurrentUserService CurrentUser
@@ -142,11 +141,11 @@
             <div class="flex justify-end gap-3">
                 @if (_editingAlbum != null)
                 {
-                    <button class="btn-danger-ghost" @onclick="DoDeleteAlbum">Xóa</button>
+                    <button class="btn-danger-ghost" @onclick="() => _confirmDeleteOpen = true">Xóa</button>
                 }
                 <button class="btn-ghost" @onclick="CloseEdit">Hủy</button>
                 <button class="btn-primary" @onclick="SaveAlbum" disabled="@_editLoading">
-                    @if (_editLoading) { <span class="w-4 h-4 border-2 border-t-black rounded-full animate-spin"></span> }
+                    @if (_editLoading) { <span class="inline-block w-4 h-4 border-2 border-t-black rounded-full animate-spin"></span> }
                     Lưu
                 </button>
             </div>
@@ -154,8 +153,18 @@
     </div>
 }
 
+<!-- Delete confirm -->
+<ConfirmDialog IsOpen="_confirmDeleteOpen"
+               Title="Xóa album"
+               Message=@($"Bạn có chắc muốn xóa album \"{_editingAlbum?.Name}\"? Các bài hát trong album vẫn được giữ lại nhưng sẽ trở thành single.")
+               ConfirmText="Xóa album"
+               ConfirmClass="btn-danger"
+               OnConfirm="DoDeleteAlbum"
+               OnCancel="() => _confirmDeleteOpen = false" />
+
 @code {
     private List<AlbumListDto>? _albums;
+    private bool _confirmDeleteOpen;
     private bool _loading;
     private bool _editOpen;
     private AlbumListDto? _editingAlbum;
@@ -260,13 +269,19 @@
 
     private async Task DoDeleteAlbum()
     {
+        _confirmDeleteOpen = false;
         if (_editingAlbum == null) return;
         var result = await AlbumService.DeleteAsync(_editingAlbum.Id, CurrentUser.UserId!.Value);
         if (result.IsSuccess)
         {
             _albums?.Remove(_editingAlbum);
+            _editingAlbum = null;
             _editOpen = false;
             Toast.Show(ToastType.Success, "Đã xóa album.");
+        }
+        else
+        {
+            Toast.Show(ToastType.Error, result.Error ?? "Xóa album thất bại.");
         }
     }
 }

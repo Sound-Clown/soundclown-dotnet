@@ -1,5 +1,5 @@
 @page "/"
-@rendermode InteractiveServer
+@attribute [Authorize]
 @inject ISongService SongService
 @inject IPlayerService PlayerService
 @inject ICurrentUserService CurrentUser
@@ -37,14 +37,22 @@
         <!-- Pagination -->
         @if (_result.Data.TotalPages > 1)
         {
-            <div class="flex justify-center gap-2 mt-6">
-                @for (int p = 1; p <= _result.Data.TotalPages; p++)
+            <div class="flex justify-center gap-2 mt-6 items-center">
+                @foreach (var p in BuildPageList(_page, _result.Data.TotalPages))
                 {
-                    <button class="w-8 h-8 rounded-lg text-sm font-medium transition-colors"
-                            style="background: @(p == _page ? "var(--accent)" : "var(--surface)"); color: @(p == _page ? "black" : "var(--foreground)");"
-                            @onclick="() => LoadPage(p)">
-                        @p
-                    </button>
+                    if (p == null)
+                    {
+                        <span class="w-8 h-8 flex items-center justify-center text-sm" style="color: var(--muted-foreground-3);">…</span>
+                    }
+                    else
+                    {
+                        var pageNum = p.Value;
+                        <button class="w-8 h-8 rounded-lg text-sm font-medium transition-colors"
+                                style="background: @(pageNum == _page ? "var(--accent)" : "var(--surface)"); color: @(pageNum == _page ? "black" : "var(--foreground)");"
+                                @onclick="() => LoadPage(pageNum)">
+                            @pageNum
+                        </button>
+                    }
                 }
             </div>
         }
@@ -67,6 +75,7 @@
 
     private async Task LoadPage(int page)
     {
+        page = Math.Max(1, page);
         _loading = true;
         _page = page;
         _result = await SongService.GetApprovedSongsAsync(page);
@@ -81,5 +90,23 @@
             s.Id, s.Title, s.CoverImage, s.AudioFile,
             s.ArtistUsername, s.PlayCount, s.LikeCount, s.IsLiked)).ToList();
         PlayerService.SetQueue(songs, index, "home");
+    }
+
+    private static List<int?> BuildPageList(int current, int total)
+    {
+        var list = new List<int?>();
+        if (total <= 7)
+        {
+            for (int i = 1; i <= total; i++) list.Add(i);
+            return list;
+        }
+        list.Add(1);
+        if (current > 3) list.Add(null);
+        int from = Math.Max(2, current - 1);
+        int to = Math.Min(total - 1, current + 1);
+        for (int i = from; i <= to; i++) list.Add(i);
+        if (current < total - 2) list.Add(null);
+        list.Add(total);
+        return list;
     }
 }

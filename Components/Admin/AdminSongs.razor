@@ -1,5 +1,4 @@
 @page "/admin/songs"
-@rendermode InteractiveServer
 @attribute [Authorize(Roles = "Admin")]
 @inject IAdminService AdminService
 @inject IToastService Toast
@@ -58,9 +57,9 @@
                             <p class="text-sm font-medium truncate">@song.Title</p>
                             <p class="text-xs" style="color: var(--muted-foreground-2);">@song.ArtistUsername</p>
                         </div>
-                        <div class="flex-shrink-0">
-                            <SongStatusBadge Status="song.Status" />
-                        </div>
+                        <p class="text-xs flex-shrink-0" style="color: var(--muted-foreground-3);">
+                            @song.CreatedAt.ToString("dd/MM")
+                        </p>
                     </div>
                 }
             </div>
@@ -212,6 +211,7 @@
         {
             _pending?.Remove(_selected);
             _selected = null;
+            _rejectReason = "";
             Toast.Show(ToastType.Success, "Đã từ chối bài hát.");
         }
         else

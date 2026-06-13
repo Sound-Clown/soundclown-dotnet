@@ -1,5 +1,4 @@
 @page "/artist/upload"
-@rendermode InteractiveServer
 @attribute [Authorize(Roles = "Artist")]
 @inject IUploadService UploadService
 @inject ISongService SongService
@@ -57,21 +56,14 @@
             <!-- Audio upload -->
             <div class="form-group mb-5">
                 <label class="label">File âm thanh</label>
-                <div class="upload-zone @(IsDraggingAudio ? "drag-over" : "") @(_audioLoading ? "opacity-60 pointer-events-none" : "")"
+                <div class="upload-zone @(IsDraggingAudio ? "drag-over" : "")"
                      style="position:relative;"
                      @ondragover:preventDefault @ondragover="() => IsDraggingAudio = true"
                      @ondragleave="() => IsDraggingAudio = false"
                      @ondrop.prevent="HandleAudioDrop">
                     <InputFile id="audio-file-input" OnChange="HandleAudioSelect" accept=".mp3,audio/mpeg"
                                style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;z-index:10;" />
-                    @if (_audioLoading)
-                    {
-                        <div class="text-center py-6">
-                            <span class="w-6 h-6 border-2 border-t-[var(--accent)] rounded-full animate-spin mx-auto mb-2 block"></span>
-                            <p class="text-sm" style="color: var(--muted-foreground);">Đang upload...</p>
-                        </div>
-                    }
-                    else if (!string.IsNullOrEmpty(_audioFileName))
+                    @if (!string.IsNullOrEmpty(_audioFileName))
                     {
                         <div class="flex items-center gap-3">
                             <svg width="28" height="28" fill="none" stroke="var(--accent)" stroke-width="1.5" viewBox="0 0 24 24">
@@ -79,7 +71,7 @@
                             </svg>
                             <div>
                                 <p class="text-sm font-medium">@_audioFileName</p>
-                                <p class="text-xs" style="color: var(--muted-foreground-3);">@FormatSize(_audioFileSize)</p>
+                                <p class="text-xs" style="color: var(--muted-foreground-3);">@FormatSize(_audioFileSize) · đã chọn</p>
                             </div>
                         </div>
                     }
@@ -119,21 +111,14 @@
                             </button>
                         </div>
                     }
-                    <div class="upload-zone-sm @(IsDraggingCover ? "drag-over" : "") flex-1 @( _coverLoading ? "opacity-60 pointer-events-none" : "")"
+                    <div class="upload-zone-sm @(IsDraggingCover ? "drag-over" : "") flex-1"
                          style="position:relative;"
                          @ondragover:preventDefault @ondragover="() => IsDraggingCover = true"
                          @ondragleave="() => IsDraggingCover = false"
                          @ondrop.prevent="HandleCoverDrop">
                         <InputFile id="cover-file-input" OnChange="HandleCoverSelect" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
                                    style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;z-index:10;" />
-                        @if (_coverLoading)
-                        {
-                            <div class="text-center">
-                                <span class="w-5 h-5 border-2 border-t-[var(--accent)] rounded-full animate-spin mx-auto mb-1 block"></span>
-                                <p class="text-xs" style="color: var(--muted-foreground-3);">Đang upload...</p>
-                            </div>
-                        }
-                        else if (_coverPreview != null)
+                        @if (_coverPreview != null)
                         {
                             <p class="text-xs text-center" style="color: var(--muted-foreground-2);">Đổi ảnh</p>
                         }
@@ -163,11 +148,11 @@
                 </div>
             }
 
-            <button type="submit" class="btn-primary w-full" disabled="@(_loading || _audioLoading)">
+            <button type="submit" class="btn-primary w-full" disabled="@_loading">
                 @if (_loading) {
-                    <span class="w-4 h-4 border-2 border-t-black rounded-full animate-spin"></span>
+                    <span class="inline-block w-4 h-4 border-2 border-t-black rounded-full animate-spin"></span>
                 }
-                Upload bài hát
+                @(_loading ? "Đang upload..." : "Upload bài hát")
             </button>
         </form>
     }
@@ -215,17 +200,21 @@
     private string _titleError = "";
     private string _error = "";
     private int? _albumId;
-    private IBrowserFile? _audioFile;
+
+    // Audio buffer (in memory until submit)
+    private byte[]? _audioBytes;
     private string _audioFileName = "";
     private long _audioFileSize;
-    private IBrowserFile? _coverFile;
-    private string? _coverPreview;
+    private string _audioContentType = "";
     private string? _audioError;
+
+    // Cover buffer (in memory until submit) + data-URL preview
+    private byte[]? _coverBytes;
+    private string _coverFileName = "";
+    private string _coverContentType = "";
+    private string? _coverPreview;
     private string? _coverError;
-    private string? _audioUrl;
-    private string? _coverUrl;
-    private bool _audioLoading;
-    private bool _coverLoading;
+
     private bool _loading;
     private bool _done;
     private bool IsDraggingAudio;
@@ -234,6 +223,10 @@
     private List<AlbumListDto> _albums = new();
     private record DropFileInfo(string Name, string ContentType, long Size, string Data);
 
+    private const long MaxAudioBytes = 10 * 1024 * 1024;
+    private const long MaxCoverBytes = 2 * 1024 * 1024;
+    private static readonly string[] CoverTypes = { "image/jpeg", "image/png", "image/webp" };
+
     protected override async Task OnInitializedAsync()
     {
         var result = await AlbumService.GetArtistAlbumsAsync(CurrentUser.UserId!.Value);
@@ -241,34 +234,23 @@
         if (result.IsSuccess) _albums = result.Data!;
     }
 
+    // ── Audio ───────────────────────────────────────────────
     private async Task HandleAudioSelect(InputFileChangeEventArgs e)
     {
         _audioError = null;
         var file = e.File;
-        if (file.ContentType != "audio/mpeg" && file.ContentType != "audio/mp3")
-        {
-            _audioError = "Chỉ chấp nhận file MP3."; Toast.Show(ToastType.Error, "Chỉ chấp nhận file MP3."); return;
-        }
-        if (file.Size > 10 * 1024 * 1024)
-        {
-            _audioError = "File tối đa 10MB."; Toast.Show(ToastType.Error, "File âm thanh tối đa 10MB."); return;
-        }
-        _audioLoading = true;
-        await using var stream = file.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024);
+        if (!IsAudioContentType(file.ContentType))
+        { _audioError = "Chỉ chấp nhận file MP3."; Toast.Show(ToastType.Error, "Chỉ chấp nhận file MP3."); return; }
+        if (file.Size > MaxAudioBytes)
+        { _audioError = "File tối đa 10MB."; Toast.Show(ToastType.Error, "File âm thanh tối đa 10MB."); return; }
+
+        await using var stream = file.OpenReadStream(maxAllowedSize: MaxAudioBytes);
         using var ms = new MemoryStream();
         await stream.CopyToAsync(ms);
-        ms.Position = 0;
-        var upload = await UploadService.UploadAudioAsync(ms, file.Name, file.ContentType, file.Size);
-        _audioLoading = false;
-        if (upload.IsSuccess)
-        {
-            _audioUrl = upload.Data!.Url;
-            _audioFileName = file.Name;
-            _audioFileSize = file.Size;
-            _audioFile = file;
-            Toast.Show(ToastType.Success, "Upload âm thanh thành công!");
-        }
-        else { _audioError = upload.Error; Toast.Show(ToastType.Error, upload.Error ?? "Upload thất bại."); }
+        _audioBytes = ms.ToArray();
+        _audioFileName = file.Name;
+        _audioFileSize = file.Size;
+        _audioContentType = file.ContentType;
     }
 
     private async Task HandleAudioDrop(DragEventArgs e)
@@ -278,50 +260,34 @@
         if (string.IsNullOrEmpty(json)) { Toast.Show(ToastType.Error, "Không đọc được file."); return; }
         var dropFile = System.Text.Json.JsonSerializer.Deserialize<DropFileInfo>(json!);
         if (dropFile == null) { Toast.Show(ToastType.Error, "Không đọc được file."); return; }
-        if (dropFile.ContentType != "audio/mpeg" && dropFile.ContentType != "audio/mp3")
+        if (!IsAudioContentType(dropFile.ContentType))
         { _audioError = "Chỉ chấp nhận file MP3."; Toast.Show(ToastType.Error, "Chỉ chấp nhận file MP3."); return; }
-        if (dropFile.Size > 10 * 1024 * 1024)
+        if (dropFile.Size > MaxAudioBytes)
         { _audioError = "File tối đa 10MB."; Toast.Show(ToastType.Error, "File âm thanh tối đa 10MB."); return; }
-        var bytes = Convert.FromBase64String(dropFile.Data);
-        _audioLoading = true;
-        using var ms = new MemoryStream(bytes);
-        var upload = await UploadService.UploadAudioAsync(ms, dropFile.Name, dropFile.ContentType, bytes.Length);
-        _audioLoading = false;
-        if (upload.IsSuccess)
-        { _audioUrl = upload.Data!.Url; _audioFileName = dropFile.Name; _audioFileSize = bytes.Length; _audioFile = null; Toast.Show(ToastType.Success, "Upload âm thanh thành công!"); }
-        else { _audioError = upload.Error; Toast.Show(ToastType.Error, upload.Error ?? "Upload thất bại."); }
+
+        _audioError = null;
+        _audioBytes = Convert.FromBase64String(dropFile.Data);
+        _audioFileName = dropFile.Name;
+        _audioFileSize = _audioBytes.LongLength;
+        _audioContentType = dropFile.ContentType;
     }
 
-    private void TriggerAudioClick() => JSRuntime.InvokeVoidAsync("triggerInputFile", "audio-file-input");
+    private static bool IsAudioContentType(string ct) =>
+        ct == "audio/mpeg" || ct == "audio/mp3";
 
+    // ── Cover ───────────────────────────────────────────────
     private async Task HandleCoverSelect(InputFileChangeEventArgs e)
     {
-        await ProcessCoverFile(e.File);
-    }
+        var file = e.File;
+        if (!CoverTypes.Contains(file.ContentType.ToLowerInvariant()))
+        { _coverError = "Chỉ chấp nhận ảnh JPG/PNG/WebP."; Toast.Show(ToastType.Error, "Chỉ chấp nhận ảnh JPG/PNG/WebP."); return; }
+        if (file.Size > MaxCoverBytes)
+        { _coverError = "Ảnh tối đa 2MB."; Toast.Show(ToastType.Error, "Ảnh bìa tối đa 2MB."); return; }
 
-    private async Task ProcessCoverFile(IBrowserFile file)
-    {
-        _coverFile = file;
-        _coverLoading = true;
-        _coverError = null;
-        await using var stream = file.OpenReadStream(maxAllowedSize: 2 * 1024 * 1024);
+        await using var stream = file.OpenReadStream(maxAllowedSize: MaxCoverBytes);
         using var ms = new MemoryStream();
         await stream.CopyToAsync(ms);
-        ms.Position = 0;
-        var upload = await UploadService.UploadImageAsync(ms, file.Name, file.ContentType, file.Size);
-        _coverLoading = false;
-        if (upload.IsSuccess)
-        {
-            _coverUrl = upload.Data!.Url;
-            _coverPreview = upload.Data.Url;
-            Toast.Show(ToastType.Success, "Upload ảnh bìa thành công!");
-        }
-        else
-        {
-            _coverFile = null;
-            _coverError = upload.Error;
-            Toast.Show(ToastType.Error, upload.Error ?? "Upload ảnh thất bại.");
-        }
+        SetCover(file.Name, file.ContentType, ms.ToArray());
     }
 
     private async Task HandleCoverDrop(DragEventArgs e)
@@ -331,52 +297,71 @@
         if (string.IsNullOrEmpty(json)) { Toast.Show(ToastType.Error, "Không đọc được file."); return; }
         var dropFile = System.Text.Json.JsonSerializer.Deserialize<DropFileInfo>(json!);
         if (dropFile == null) { Toast.Show(ToastType.Error, "Không đọc được file."); return; }
-        var allowedTypes = new[] { "image/jpeg", "image/png", "image/webp" };
-        if (!allowedTypes.Contains(dropFile.ContentType.ToLowerInvariant()))
-        { Toast.Show(ToastType.Error, "Chỉ chấp nhận ảnh JPG, PNG hoặc WebP."); return; }
-        if (dropFile.Size > 2 * 1024 * 1024)
+        if (!CoverTypes.Contains(dropFile.ContentType.ToLowerInvariant()))
+        { Toast.Show(ToastType.Error, "Chỉ chấp nhận ảnh JPG/PNG/WebP."); return; }
+        if (dropFile.Size > MaxCoverBytes)
         { Toast.Show(ToastType.Error, "Ảnh bìa tối đa 2MB."); return; }
-        var bytes = Convert.FromBase64String(dropFile.Data);
-        await ProcessCoverBytes(dropFile.Name, dropFile.ContentType, bytes);
+
+        SetCover(dropFile.Name, dropFile.ContentType, Convert.FromBase64String(dropFile.Data));
     }
 
-    private async Task ProcessCoverBytes(string fileName, string contentType, byte[] bytes)
+    private void SetCover(string fileName, string contentType, byte[] bytes)
     {
-        _coverLoading = true;
         _coverError = null;
-        using var ms = new MemoryStream(bytes);
-        var upload = await UploadService.UploadImageAsync(ms, fileName, contentType, bytes.Length);
-        _coverLoading = false;
-        if (upload.IsSuccess)
-        {
-            _coverUrl = upload.Data!.Url;
-            _coverPreview = upload.Data.Url;
-            Toast.Show(ToastType.Success, "Upload ảnh bìa thành công!");
-        }
-        else
-        {
-            _coverFile = null;
-            _coverError = upload.Error;
-            Toast.Show(ToastType.Error, upload.Error ?? "Upload ảnh thất bại.");
-        }
+        _coverBytes = bytes;
+        _coverFileName = fileName;
+        _coverContentType = contentType;
+        _coverPreview = $"data:{contentType};base64,{Convert.ToBase64String(bytes)}";
     }
 
     private void ClearCover()
     {
-        _coverFile = null;
+        _coverBytes = null;
+        _coverFileName = "";
+        _coverContentType = "";
         _coverPreview = null;
-        _coverUrl = null;
     }
 
+    // ── Submit ──────────────────────────────────────────────
     private async Task HandleSubmit()
     {
         _error = "";
         _titleError = "";
         if (string.IsNullOrWhiteSpace(_title)) { _titleError = "Vui lòng nhập tên bài hát."; return; }
-        if (string.IsNullOrEmpty(_audioUrl)) { _audioError = "Vui lòng upload file âm thanh."; return; }
+        if (_audioBytes == null) { _audioError = "Vui lòng chọn file âm thanh."; return; }
 
         _loading = true;
-        var dto = new CreateSongDto(_title, _audioUrl!, _coverUrl, _albumId);
+
+        // Upload audio
+        string audioUrl;
+        using (var audioMs = new MemoryStream(_audioBytes))
+        {
+            var audioUpload = await UploadService.UploadAudioAsync(audioMs, _audioFileName, _audioContentType, _audioBytes.LongLength);
+            if (!audioUpload.IsSuccess)
+            {
+                _loading = false;
+                _error = audioUpload.Error ?? "Upload âm thanh thất bại.";
+                return;
+            }
+            audioUrl = audioUpload.Data!.Url;
+        }
+
+        // Upload cover (optional)
+        string? coverUrl = null;
+        if (_coverBytes != null)
+        {
+            using var coverMs = new MemoryStream(_coverBytes);
+            var coverUpload = await UploadService.UploadImageAsync(coverMs, _coverFileName, _coverContentType, _coverBytes.LongLength);
+            if (!coverUpload.IsSuccess)
+            {
+                _loading = false;
+                _error = coverUpload.Error ?? "Upload ảnh bìa thất bại.";
+                return;
+            }
+            coverUrl = coverUpload.Data!.Url;
+        }
+
+        var dto = new CreateSongDto(_title, audioUrl, coverUrl, _albumId);
         var result = await SongService.CreateAsync(dto, CurrentUser.UserId!.Value);
         _loading = false;
 
@@ -391,7 +376,19 @@
         }
     }
 
-    private void Reset() { _done = false; _title = ""; _audioFile = null; _audioFileName = ""; _audioFileSize = 0; _coverFile = null; _coverPreview = null; _audioUrl = null; _coverUrl = null; }
+    private void Reset()
+    {
+        _done = false;
+        _title = "";
+        _audioBytes = null;
+        _audioFileName = "";
+        _audioFileSize = 0;
+        _audioContentType = "";
+        ClearCover();
+        _audioError = null;
+        _coverError = null;
+        _error = "";
+    }
 
     private static string FormatSize(long bytes)
     {

@@ -16,5 +16,6 @@ public interface IPlayerService
     void TogglePlay();
     void SetPlaying(bool playing);
     void CheckState();
+    void UpdateCurrentSongLike(bool liked, int likeCount);
     event Action? OnChange;
 }
