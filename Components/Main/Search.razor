@@ -4,6 +4,7 @@
 @inject IPlayerService PlayerService
 @inject ICurrentUserService CurrentUser
 @inject IToastService Toast
+@implements IDisposable
 
 <div class="page-content">
     <!-- Search input -->
@@ -16,7 +17,7 @@
         </svg>
         <input class="input" style="padding-left: 2.25rem;"
                placeholder="Tìm bài hát, nghệ sĩ..."
-               @bind="_query" @bind:event="oninput" />
+               @bind-value="_query" @bind-value:event="oninput" @bind-value:after="OnQueryChanged" />
     </div>
 
     @if (_loading)
@@ -109,9 +110,19 @@
         _debounce.AutoReset = false;
     }
 
-    private void OnInput(ChangeEventArgs e)
+    private void OnQueryChanged()
     {
-        _query = e.Value?.ToString() ?? "";
+        // Clear immediately when query is too short to search
+        if (_query.Length < 2)
+        {
+            _debounce?.Stop();
+            _songs = new();
+            _artists = new();
+            _loading = false;
+            StateHasChanged();
+            return;
+        }
+
         _debounce?.Stop();
         _debounce?.Start();
     }
@@ -131,5 +142,13 @@
         var result = await SongService.ToggleLikeAsync(song.Id, CurrentUser.UserId.Value);
         if (result.IsSuccess) StateHasChanged();
         else Toast.Show(ToastType.Error, result.Error ?? "Lỗi");
+    }
+
+    public void Dispose()
+    {
+        if (_debounce == null) return;
+        _debounce.Stop();
+        _debounce.Dispose();
+        _debounce = null;
     }
 }

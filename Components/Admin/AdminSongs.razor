@@ -139,11 +139,12 @@
             </div>
             <div class="form-group mb-4">
                 <label class="label">Lý do từ chối (bắt buộc)</label>
-                <textarea class="input" rows="3" @bind="_rejectReason" placeholder="VD: Chất lượng âm thanh kém..."></textarea>
+                <textarea class="input" rows="3" @bind-value="_rejectReason" @bind-value:event="oninput"
+                          placeholder="VD: Chất lượng âm thanh kém..."></textarea>
             </div>
             <div class="flex justify-end gap-3">
-                <button class="btn-ghost" @onclick="() => _rejectOpen = false">Hủy</button>
-                <button class="btn-danger" @onclick="Reject" disabled="@(string.IsNullOrWhiteSpace(_rejectReason))">Từ chối</button>
+                <button class="btn-ghost" @onclick="() => _rejectOpen = false" disabled="@_acting">Hủy</button>
+                <button class="btn-danger" @onclick="Reject" disabled="@_acting">Từ chối</button>
             </div>
         </div>
     </div>
@@ -192,10 +193,20 @@
 
     private async Task Reject()
     {
-        if (_selected == null || string.IsNullOrWhiteSpace(_rejectReason)) return;
+        if (_selected == null) return;
+
+        if (string.IsNullOrWhiteSpace(_rejectReason))
+        {
+            Toast.Show(ToastType.Error, "Vui lòng nhập lý do từ chối");
+            return;
+        }
+
         _acting = true;
-        var result = await AdminService.ReviewSongAsync(_selected.Id, new ReviewSongDto("reject", _rejectReason));
+        var result = await AdminService.ReviewSongAsync(
+            _selected.Id,
+            new ReviewSongDto("reject", _rejectReason.Trim()));
         _acting = false;
+
         _rejectOpen = false;
         if (result.IsSuccess)
         {

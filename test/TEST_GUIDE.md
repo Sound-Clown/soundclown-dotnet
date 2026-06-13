@@ -143,9 +143,9 @@
 5. Để trống ô lý do
 6. Nhấn **Từ chối** lần 2
 
-**Kết quả mong đợi**: Button **Từ chối** bị disable (UI) HOẶC hiển thị lỗi "Vui lòng nhập lý do từ chối."
+**Kết quả mong đợi**: Hiển thị toast cảnh báo/lỗi: "Vui lòng nhập lý do từ chối". Modal vẫn mở và không xử lý reject.
 
-**Ảnh cần chụp**: Button disabled HOẶC thông báo lỗi.
+**Ảnh cần chụp**: Toast hiển thị đúng nội dung.
 
 ---
 

@@ -57,9 +57,10 @@ public class AdminService : IAdminService
                 break;
             case "reject":
                 if (string.IsNullOrWhiteSpace(dto.RejectReason))
-                    return ServiceResult.Fail("Vui lòng nhập lý do từ chối.");
+                    return ServiceResult.Fail("Vui lòng nhập lý do từ chối");
+
                 song.Status = SongStatus.Rejected;
-                song.RejectReason = dto.RejectReason;
+                song.RejectReason = dto.RejectReason.Trim();
                 break;
             default:
                 return ServiceResult.Fail("Hành động không hợp lệ.");
