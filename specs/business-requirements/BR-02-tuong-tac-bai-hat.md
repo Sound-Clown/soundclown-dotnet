@@ -2,12 +2,13 @@
 
 ## Mô tả
 
-User đã đăng nhập có thể like/unlike bài hát và phát nhạc. Like là toggle idempotent. Play count chỉ tăng khi nghe đủ 30 giây.
+User đã đăng nhập có thể phát nhạc, like/unlike bài hát, và chia sẻ link. Like là toggle idempotent. Play count chỉ tăng khi nghe đủ 30 giây. Chia sẻ copy link vào clipboard.
 
 ## Nguồn
 
-- UC-02: Like/Unlike bài hát
-- UC-03: Phát nhạc & đếm lượt nghe
+- UC-01: Phát nhạc
+- UC-03: Like / Unlike bài hát
+- UC-04: Chia sẻ bài hát
 
 ## Quy tắc nghiệp vụ
 

@@ -6,7 +6,7 @@ User tìm kiếm bài hát và artist theo từ khóa. Tìm kiếm case-insensit
 
 ## Nguồn
 
-- UC-07: Tìm kiếm bài hát
+- UC-02: Tìm kiếm bài hát
 
 ## Quy tắc nghiệp vụ
 

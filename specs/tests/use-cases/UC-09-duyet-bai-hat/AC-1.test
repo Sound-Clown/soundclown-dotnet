@@ -1,0 +1,8 @@
+type: api
+account: admin@music.com / Admin123456!
+tool: Postman — POST /api/admin/songs/{id}/review, Bearer {{tokenAdmin}}
+steps:
+  1. Login admin@music.com
+  2. Gọi POST /api/admin/songs/{id}/review với body {"action":"approve"}
+expected: HTTP 200, { "message": "Thành công.", "action": "approve" }
+screenshot: Response body JSON

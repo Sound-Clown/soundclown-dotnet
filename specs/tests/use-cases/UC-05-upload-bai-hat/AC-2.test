@@ -1,0 +1,10 @@
+type: manual
+account: artist@demo.com / Artist123!
+tool: Browser
+steps:
+  1. Đăng nhập artist@demo.com
+  2. Vào /artist/upload
+  3. Chọn file malicious.mp3 (file .exe đổi tên)
+  4. Quan sát phản hồi
+expected: Lỗi hiển thị ngay khi chọn file — "Chỉ chấp nhận file MP3."
+screenshot: Thông báo lỗi validation

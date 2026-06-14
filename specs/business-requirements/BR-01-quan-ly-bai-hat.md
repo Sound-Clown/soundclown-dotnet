@@ -2,12 +2,12 @@
 
 ## Mô tả
 
-Hệ thống cho phép Artist upload, sửa bài hát. Bài hát trải qua vòng đời: Pending -> Approved/Rejected. Chỉ bài Approved mới công khai. Artist sửa bài Approved sẽ reset về Pending để duyệt lại.
+Hệ thống cho phép Artist upload, sửa, xóa bài hát. Bài hát trải qua vòng đời: Pending -> Approved/Rejected. Chỉ bài Approved mới công khai. Artist sửa nội dung bài Approved sẽ reset về Pending để duyệt lại. Chỉ thay đổi AlbumId không trigger reset.
 
 ## Nguồn
 
-- UC-01: Upload bài hát
-- UC-08: Artist sửa bài hát
+- UC-05: Upload bài hát
+- UC-07: Quản lý bài hát
 
 ## Quy tắc nghiệp vụ
 

@@ -1,0 +1,10 @@
+type: manual
+account: artist@demo.com / Artist123!
+tool: Browser
+steps:
+  1. Vào /artist/albums
+  2. Hover album, nhấn Edit
+  3. Đổi tên hoặc ảnh bìa
+  4. Nhấn "Lưu"
+expected: Toast "Đã cập nhật album!"
+screenshot: Album đã cập nhật

@@ -1,0 +1,8 @@
+type: api
+account: listener@demo.com / Listener123!
+tool: Postman — PUT /api/songs/{id}, Bearer {{tokenListener}}
+steps:
+  1. Login listener@demo.com
+  2. Gọi PUT /api/songs/{id} với body {"title":"Hacked Title"} (bài của artist khác)
+expected: HTTP 403, { "error": "Không tìm thấy bài hát hoặc bạn không có quyền." }
+screenshot: Response 403

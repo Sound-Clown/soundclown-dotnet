@@ -1,0 +1,8 @@
+type: api
+account: admin@music.com / Admin123456!
+tool: Postman — POST /api/admin/users/{id}/toggle-lock, Bearer {{tokenAdmin}}
+steps:
+  1. Login admin@music.com
+  2. Gọi POST /api/admin/users/2/toggle-lock (user khác)
+expected: HTTP 200, { "message": "Đã khóa.", "isActive": false } (chạy lần 2 sẽ toggle ngược)
+screenshot: Response body JSON

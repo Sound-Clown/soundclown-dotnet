@@ -6,7 +6,7 @@ Hệ thống kiểm soát quyền truy cập ở hai tầng: route-level (Role-b
 
 ## Nguồn
 
-- UC-06: Phân quyền truy cập
+- UC-07: Quản lý bài hát
 
 ## Quy tắc nghiệp vụ
 

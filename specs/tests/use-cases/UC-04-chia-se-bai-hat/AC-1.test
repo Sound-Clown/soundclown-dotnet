@@ -1,0 +1,9 @@
+type: manual
+account: listener@demo.com / Listener123!
+tool: Browser
+steps:
+  1. Đăng nhập listener@demo.com
+  2. Vào trang chi tiết bài hát /songs/{Id}
+  3. Nhấn nút "Chia sẻ"
+expected: Link copy vào clipboard, toast "Đã copy link!"
+screenshot: Toast xác nhận

@@ -1,0 +1,8 @@
+type: manual
+account: artist@demo.com / Artist123!
+tool: Browser
+steps:
+  1. Chọn file over_10mb.mp3 (~10.5MB) vào form upload
+  2. Quan sát phản hồi
+expected: Lỗi "File âm thanh tối đa 10MB."
+screenshot: Thông báo lỗi

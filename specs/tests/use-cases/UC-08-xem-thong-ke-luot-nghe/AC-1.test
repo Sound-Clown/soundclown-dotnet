@@ -1,0 +1,9 @@
+type: manual
+account: artist@demo.com / Artist123!
+tool: Browser
+steps:
+  1. Đăng nhập artist@demo.com
+  2. Vào /artist/stats
+  3. Quan sát trang thống kê
+expected: Hiển thị Tổng lượt phát, Tổng lượt thích, biểu đồ top bài hát, bảng chi tiết
+screenshot: Trang thống kê

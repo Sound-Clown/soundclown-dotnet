@@ -1,0 +1,8 @@
+type: api
+account: listener@demo.com / Listener123!
+tool: Postman — POST /api/songs/{id}/like, Bearer {{tokenListener}}
+steps:
+  1. Login listener@demo.com lấy token
+  2. Gọi POST /api/songs/{id}/like với bài chưa like
+expected: HTTP 200, { "liked": true, "newCount": <số like mới> }
+screenshot: Response body JSON trong Postman

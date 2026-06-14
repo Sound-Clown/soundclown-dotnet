@@ -1,0 +1,12 @@
+type: manual
+account: artist@demo.com / Artist123!
+tool: Browser
+steps:
+  1. Đăng nhập artist@demo.com
+  2. Vào /artist/upload
+  3. Nhập Title: "Giấc Mơ Mùa Hè"
+  4. Chọn file sample_5mb.mp3
+  5. (Tùy chọn) Upload ảnh bìa
+  6. Nhấn Upload bài hát
+expected: Toast "Upload thành công! Bài hát đang chờ duyệt.", trang /artist/songs thấy bài mới badge Pending (vàng)
+screenshot: Toast thành công + trang My Songs badge Pending

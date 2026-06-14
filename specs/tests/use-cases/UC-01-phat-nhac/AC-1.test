@@ -1,0 +1,10 @@
+type: manual
+account: listener@demo.com / Listener123!
+tool: Browser
+steps:
+  1. Đăng nhập listener@demo.com
+  2. Vào trang Home, nhấn Play 1 bài hát
+  3. Chờ đủ 35 giây (bấm đồng hồ)
+  4. Kiểm tra play_count trong DB (SELECT play_count FROM songs WHERE id = <songId>)
+expected: play_count tăng thêm 1
+screenshot: Đồng hồ đếm 35s + play_count tăng

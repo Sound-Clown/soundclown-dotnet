@@ -1,0 +1,8 @@
+type: api
+account: listener@demo.com / Listener123!
+tool: Postman — GET /api/admin/songs, Bearer {{tokenListener}}
+steps:
+  1. Login listener@demo.com
+  2. Gọi GET /api/admin/songs (API yêu cầu Role = Admin)
+expected: HTTP 403
+screenshot: Response 403

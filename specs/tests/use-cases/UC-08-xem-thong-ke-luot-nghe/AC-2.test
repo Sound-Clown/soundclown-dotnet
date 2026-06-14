@@ -1,0 +1,8 @@
+type: manual
+account: artist@demo.com / Artist123!
+tool: Browser
+steps:
+  1. Đăng nhập artist mới (chưa có bài Approved nào)
+  2. Vào /artist/stats
+expected: Hiển thị EmptyState — "Chưa có dữ liệu" / "Hãy upload và được duyệt ít nhất một bài hát."
+screenshot: EmptyState
