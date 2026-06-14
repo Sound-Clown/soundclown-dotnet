@@ -1,0 +1,22 @@
+TC-05: Listener/Artist gọi API Admin → 403
+
+Loại: Black-box, Security, Authorization
+Công cụ: Postman (API)
+API: GET /api/admin/songs, POST /api/admin/songs/{id}/review
+
+Các bước:
+1. Mở request "TC-05 Listener gọi API Admin → 403"
+   - Token: {{tokenListener}}
+   - Nhấn Send
+   - Kết quả: HTTP 403
+2. Mở request "TC-05 Artist gọi API Admin → 403"
+   - Token: {{tokenArtist}}
+   - Nhấn Send
+   - Kết quả: HTTP 403
+
+Kết quả mong đợi:
+- Cả Listener và Artist đều nhận HTTP 403 khi gọi API Admin
+
+Ảnh cần chụp:
+1. Response 403 cho Listener
+2. Response 403 cho Artist

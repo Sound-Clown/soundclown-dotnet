@@ -1,0 +1,23 @@
+TC-01: Upload bài hát thành công
+
+Loại: Black-box, Positive, Functional
+Tài khoản: artist@demo.com / Artist123!
+Công cụ: Trình duyệt (thủ công)
+File test: tests/fixtures/files/sample_5mb.mp3
+
+Các bước:
+1. Đăng nhập artist@demo.com
+2. Vào /artist/upload
+3. Nhập Title: "Giấc Mơ Mùa Hè"
+4. Chọn file sample_5mb.mp3 vào vùng upload audio
+5. (Tùy chọn) Upload ảnh bìa sample_cover.jpg
+6. Nhấn Upload bài hát
+7. Quan sát toast thành công
+
+Kết quả mong đợi:
+- Toast: "Upload thành công! Bài hát đang chờ duyệt."
+- Trang /artist/songs thấy bài mới với badge Pending (vàng)
+
+Ảnh cần chụp:
+1. Toast thành công
+2. Trang My Songs thấy bài Pending

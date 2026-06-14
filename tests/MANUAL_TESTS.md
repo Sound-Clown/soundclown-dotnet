@@ -153,7 +153,7 @@
 ### TC-14 — Admin tự khóa tài khoản mình
 
 **Loại**: Black-box, Security
-
+    
 **Tài khoản**: `admin@music.com` / `Admin123456!`
 
 **Các bước**:

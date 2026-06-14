@@ -20,6 +20,11 @@ Thumbs.db
 
 # Documents
 /docs/
+.idea
+AGENTS.md
+CLAUDE.md
+.gitnexus
+.claude
 
 # Test artifacts (generated, not source)
 tests/*/TestResults/

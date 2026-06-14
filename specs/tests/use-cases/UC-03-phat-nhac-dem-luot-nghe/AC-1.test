@@ -1,0 +1,19 @@
+TC-08: Play >= 30 giây → Play count tăng 1
+
+Loại: Black-box, Functional (timing-sensitive)
+Tài khoản: listener@demo.com / Listener123!
+Công cụ: Trình duyệt (thủ công) + DB verify
+
+Các bước:
+1. Đăng nhập listener@demo.com
+2. Ghi lại play_count hiện tại của 1 bài (SELECT play_count FROM songs WHERE id = <songId>)
+3. Vào trang Home, nhấn Play bài hát đó
+4. Bấm đồng hồ: chờ đủ 35 giây
+5. Kiểm tra lại play_count trong DB
+
+Kết quả mong đợi:
+- play_count tăng thêm 1
+
+Ảnh cần chụp:
+1. Đồng hồ đếm 35s
+2. Số play_count tăng trong DB
