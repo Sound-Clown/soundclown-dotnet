@@ -1,0 +1,18 @@
+TC-12: Review Reject (nhánh Reject)
+
+Loại: Black-box, Positive, Functional
+Công cụ: Postman (API)
+API: POST /api/admin/songs/{id}/review
+Body: {"action":"reject","rejectReason":"Chất lượng audio kém"}
+
+Các bước:
+1. Mở request "TC-12 Review Reject (nhánh reject)"
+2. Token: {{tokenAdmin}}
+3. Nhấn Send
+
+Kết quả mong đợi:
+- HTTP 200
+- Body: { "message": "Thành công.", "action": "reject" }
+
+Ảnh cần chụp:
+1. Response body JSON trong Postman

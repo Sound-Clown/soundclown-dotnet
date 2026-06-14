@@ -1,0 +1,19 @@
+TC-15: ToggleLockUser hợp lệ
+
+Loại: Black-box, Positive, Functional
+Công cụ: Postman (API)
+API: POST /api/admin/users/{id}/toggle-lock
+
+Các bước:
+1. Mở request "TC-15 ToggleLockUser hợp lệ"
+2. Token: {{tokenAdmin}}
+3. ID 2 = listener@demo.com (user khác)
+4. Nhấn Send
+
+Kết quả mong đợi:
+- HTTP 200
+- Lần 1: { "message": "Đã khóa.", "isActive": false }
+- Lần 2 (toggle ngược): { "message": "Đã mở khóa.", "isActive": true }
+
+Ảnh cần chụp:
+1. Response body JSON trong Postman

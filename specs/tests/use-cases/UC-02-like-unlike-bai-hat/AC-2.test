@@ -1,0 +1,18 @@
+TC-04: Unlike (nhánh Delete)
+
+Loại: Black-box, Positive, Functional
+Công cụ: Postman (API)
+API: POST /api/songs/{id}/like
+
+Các bước:
+1. Chạy ngay sau TC-03 (cùng bài hát)
+2. Mở request "TC-04 Unlike (nhánh Delete)"
+3. Token: {{tokenAdmin}}
+4. Nhấn Send
+
+Kết quả mong đợi:
+- HTTP 200
+- Body: { "liked": false, "newCount": 10 }
+
+Ảnh cần chụp:
+1. Response body JSON trong Postman

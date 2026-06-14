@@ -1,0 +1,20 @@
+TC-16: Artist A sửa bài Artist B → 403
+
+Loại: Black-box, Security, Ownership
+Công cụ: Postman (API)
+API: PUT /api/songs/{id}
+Body: {"title":"Hacked Title"}
+
+Các bước:
+1. Mở request "TC-16 Artist A sửa bài Artist B → 403"
+2. Token: {{tokenListener}} (user khác, không phải chủ bài)
+3. Body: {"title":"Hacked Title"}
+4. {{songId}} = bài của artist@demo.com
+5. Nhấn Send
+
+Kết quả mong đợi:
+- HTTP 403
+- Body: { "error": "Không tìm thấy bài hát hoặc bạn không có quyền." }
+
+Ảnh cần chụp:
+1. Response 403 trong Postman

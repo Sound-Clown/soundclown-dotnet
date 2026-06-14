@@ -1,0 +1,18 @@
+TC-10: Like 5 lần liên tiếp
+
+Loại: Black-box, Idempotency
+Tài khoản: listener@demo.com / Listener123!
+Công cụ: Trình duyệt (thủ công)
+
+Các bước:
+1. Đăng nhập listener@demo.com
+2. Vào trang Home
+3. Nhấn nút ♡ (Like) 5 lần liên tiếp vào cùng 1 bài hát trong vòng 3 giây
+4. Quan sát icon ♡ và số like
+
+Kết quả mong đợi:
+- Like count chỉ tăng 1
+- Icon ♡ hiển thị trạng thái cuối cùng (đã like)
+
+Ảnh cần chụp:
+1. Số like count hiển thị sau 5 lần click

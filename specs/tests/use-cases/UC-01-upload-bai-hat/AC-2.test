@@ -1,0 +1,18 @@
+TC-02: Upload file .exe đổi đuôi thành .mp3
+
+Loại: Black-box, Negative, Validation
+Tài khoản: artist@demo.com / Artist123!
+Công cụ: Trình duyệt (thủ công)
+File test: tests/fixtures/files/malicious.mp3 (file .exe đã đổi tên)
+
+Các bước:
+1. Đăng nhập artist@demo.com
+2. Vào /artist/upload
+3. Chọn file malicious.mp3
+4. Quan sát phản hồi
+
+Kết quả mong đợi:
+- Lỗi hiển thị ngay khi chọn file — "Chỉ chấp nhận file MP3."
+
+Ảnh cần chụp:
+1. Thông báo lỗi validation
