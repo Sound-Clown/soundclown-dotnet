@@ -97,6 +97,37 @@ Artist upload file audio MP3 kèm ảnh bìa (tùy chọn) để tạo bài hát
 | BR-07 | Title bài hát được trim khoảng trắng trước khi lưu |
 | BR-08 | CoverImage và AlbumId là nullable (không bắt buộc) |
 
+## Tiêu chí chất lượng
+
+### Mức ý niệm (Essential / Conceptual) — *UC này có cần thiết không?*
+
+- **Mục tiêu nghiệp vụ**: cho Artist đóng góp nội dung mới vào kho nhạc — chức năng nguồn cung của nền tảng.
+- **Workflow contributor → moderator**: bài hát luôn ở trạng thái Pending sau khi tạo → đảm bảo nội dung được kiểm duyệt qua UC-09 trước khi công khai.
+- **Actor đúng vai**: chỉ Artist (hoặc Admin) đã đăng nhập mới upload được — phản ánh quyền tạo nội dung.
+- **Có actor phụ**: Cloudinary làm hệ thống lưu trữ media — tách bạch storage khỏi DB chính.
+- **Truy vết tới BR**: UC-05 ↔ BR-01 (Quản lý bài hát).
+- **Trung lập công nghệ ở mức ý niệm**: chưa nói tới Cloudinary SDK, MP3 codec, hay số byte cụ thể — chỉ nêu "file âm thanh kèm ảnh bìa tùy chọn".
+
+### Mức thiết kế (Design-level) — *Thiết kế xử lý UC này có hợp lý không?*
+
+- **Luồng chính 12 bước tuần tự**, có điểm vào (truy cập /artist/upload) và điểm ra (toast thành công) rõ ràng.
+- **Bao phủ đủ điểm thất bại**: 6 nhánh ngoại lệ R1–R6 (sai loại audio, quá size audio, sai loại ảnh, quá size ảnh, album không thuộc artist, lỗi external service) — mỗi nhánh có thông điệp phản hồi cụ thể.
+- **Quy tắc nghiệp vụ định lượng**: 10MB, 2MB, content-type cụ thể, Status mặc định = Pending — không có quy tắc mơ hồ.
+- **Quy tắc nghiệp vụ đầy đủ để suy ra Requirement**: có thể sinh TC bao phủ Positive (upload hợp lệ), Negative (sai loại file), Boundary (đúng / vượt ngưỡng 10MB).
+- **Tính module**: chỉ tạo bài hát mới, tách bạch với duyệt (UC-09) và sửa (UC-07).
+- **Tiền/hậu điều kiện rõ**: tiền điều kiện về role + đăng nhập; hậu điều kiện về Status + vị trí hiển thị (badge Pending) — quan sát được.
+
+### Mức hiện thực (Concrete / Implementation-level) — *Bản code đã chạy đúng chưa?*
+
+- Code validation file audio có thực thi đúng quy tắc content-type ∈ {audio/mpeg, audio/mp3} và size ≤ 10MB không?
+- Code validation ảnh bìa có thực thi đúng quy tắc content-type ∈ {image/jpeg, image/png, image/webp} và size ≤ 2MB không?
+- Sau khi upload thành công, bản ghi Song có lưu đúng Status = Pending kèm ArtistId, AudioFile (URL), CoverImage (nullable), AlbumId (nullable) không?
+- Khi Cloudinary trả lỗi, hệ thống có bắt exception và trả message rõ cho user, không crash request không?
+- Nếu Artist chọn AlbumId không thuộc mình, code có từ chối với "Album không hợp lệ." không?
+- Title có được trim khoảng trắng trước khi lưu vào DB không?
+- Toast hiển thị đúng nội dung "Upload thành công! Bài hát đang chờ duyệt." không?
+- Tất cả AC-01 → AC-04 chạy thực tế cho kết quả khớp expected không?
+
 ## Acceptance Criteria
 
 | AC | Mô tả | TC liên kết |

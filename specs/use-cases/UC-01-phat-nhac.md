@@ -62,6 +62,38 @@ User phát bài hát qua HTML5 `<audio>` player. Hệ thống sử dụng JS Int
 | BR-04 | Queue tự động chuyển bài tiếp theo khi bài hiện tại kết thúc |
 | BR-05 | Debounce 300ms cho thao tác tìm kiếm/tương tác tránh gửi request liên tục |
 
+## Tiêu chí chất lượng
+
+### Mức ý niệm (Essential / Conceptual) — *UC này có cần thiết không?*
+
+- **Mục tiêu nghiệp vụ cốt lõi**: phát nhạc là chức năng trung tâm của nền tảng music streaming — không có UC này thì sản phẩm không tồn tại.
+- **Đếm lượt nghe phản ánh trung thực mức độ tiếp cận**: tín hiệu định lượng cho Artist (qua UC-08 Thống kê) và cho thuật toán xếp hạng.
+- **Ngưỡng 30 giây có lý do**: chống gian lận inflate count bằng auto-click — phù hợp chuẩn ngành (Spotify, YouTube cũng có ngưỡng tương tự).
+- **Actor rộng**: bất kỳ user đã đăng nhập (Listener, Artist) — phản ánh tính phổ thông của hành vi tiêu thụ nội dung.
+- **Truy vết tới BR**: UC-01 ↔ BR-02 (Tương tác bài hát).
+- **Trung lập công nghệ**: chưa nói tới HTML5 audio, JS Interop, endpoint cụ thể.
+
+### Mức thiết kế (Design-level) — *Thiết kế xử lý UC này có hợp lý không?*
+
+- **Tách 2 trách nhiệm trong cùng UC**: (a) điều khiển phát (queue, next/prev, play/pause, auto-next) và (b) đếm lượt nghe — decoupled, có thể test riêng.
+- **Quy tắc đếm có ngưỡng định lượng**: 30 giây — đo lường được, không mơ hồ kiểu "nghe đủ lâu".
+- **Tính idempotent của tăng count**: mỗi lượt nghe đủ ngưỡng chỉ tăng đúng 1, không bị double-count khi event bắn lặp.
+- **Quy tắc nghiệp vụ đầy đủ để suy ra Requirement**: từ các quy tắc có thể sinh TC bao phủ Positive (đủ 30s), Negative (dưới 30s, đóng tab), Boundary (đúng 30s).
+- **Điều khiển queue mô tả tường minh**: Next / Prev / Toggle Play-Pause + auto-next — không bỏ sót thao tác cơ bản của một music player.
+- **Debounce 300ms**: giảm tải request khi user thao tác liên tục.
+- **Tính module**: không nhúng like (UC-03) hay tính trending — giữ trách nhiệm đơn nhất.
+
+### Mức hiện thực (Concrete / Implementation-level) — *Bản code đã chạy đúng chưa?*
+
+- Khi user phát bài hát đủ ≥ 30 giây, PlayCount trên DB có tăng đúng 1 đơn vị không?
+- Khi user phát < 30 giây rồi dừng / chuyển bài / đóng tab, PlayCount có **không thay đổi** không?
+- Mỗi lượt nghe đủ ngưỡng chỉ tăng đúng 1, không bị tăng nhiều lần do event bắn liên tục không?
+- Player có tự động chuyển sang bài kế tiếp trong queue khi bài hiện tại kết thúc không?
+- Các thao tác Next / Prev / Toggle Play-Pause có hoạt động đúng và không vượt biên (Next bài cuối, Prev bài đầu) không?
+- Khi bài hát không tồn tại nhưng client gửi request tăng count, server có trả lỗi "Không tìm thấy bài hát." không?
+- Endpoint tăng PlayCount có yêu cầu xác thực không?
+- Tất cả AC-01, AC-02 chạy thực tế cho kết quả khớp với expected không?
+
 ## Acceptance Criteria
 
 | AC | Mô tả | TC liên kết |

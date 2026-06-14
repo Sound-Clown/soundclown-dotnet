@@ -78,6 +78,39 @@ Admin duyệt hoặc từ chối bài hát đang ở trạng thái Pending. Bài
 | BR-04 | RejectReason được trim khoảng trắng trước khi lưu |
 | BR-05 | Chỉ bài Pending mới xuất hiện trong danh sách duyệt |
 
+## Tiêu chí chất lượng
+
+### Mức ý niệm (Essential / Conceptual) — *UC này có cần thiết không?*
+
+- **Mục tiêu nghiệp vụ**: kiểm duyệt nội dung do Artist gửi lên trước khi công khai → bảo vệ chất lượng và tuân thủ quy định nền tảng.
+- **Vai trò gác cổng (gatekeeper)**: không có UC này thì bài hát từ UC-05 (Upload) không bao giờ ra được trang chủ → UC-09 là khâu bắt buộc trong vòng đời nội dung.
+- **Hai ý định đối ngẫu**: chấp nhận (Approved) hoặc từ chối (Rejected); nếu từ chối thì bắt buộc kèm lý do để Artist hiểu và sửa.
+- **Actor đúng vai**: chỉ Admin — phản ánh đúng vai trò moderator.
+- **Truy vết tới BR**: UC-09 ↔ BR-03 (Duyệt nội dung).
+- **Trung lập công nghệ**: chưa nói tới enum SongStatus, modal UI, hay endpoint.
+
+### Mức thiết kế (Design-level) — *Thiết kế xử lý UC này có hợp lý không?*
+
+- **Hai luồng đối ngẫu** (Approve / Reject) cùng entry point và cùng API, phân biệt qua tham số action → tránh trùng lặp 2 màn hình.
+- **Bắt buộc lý do khi reject**: được mô tả tường minh ở cả luồng thay thế và nhánh ngoại lệ R1 → ràng buộc không thể bỏ qua.
+- **Tính sạch trạng thái**: khi approve, RejectReason cũ được xóa → tránh dữ liệu rác từ lần reject trước.
+- **State machine đúng**: chỉ bài Pending mới được review (BR-05) — ngăn duyệt lại bài đã Approved/Rejected.
+- **Quy tắc nghiệp vụ đầy đủ để suy ra Requirement**: có thể sinh TC bao phủ Approve happy path, Reject kèm lý do, Reject thiếu lý do, action không hợp lệ.
+- **Tính module**: chỉ xử lý duyệt, không nhúng chỉnh sửa nội dung (UC-07) hay khóa Artist (UC-10).
+- **Phân quyền là tiền điều kiện**, không trộn vào luồng — phối hợp với UC-07.
+
+### Mức hiện thực (Concrete / Implementation-level) — *Bản code đã chạy đúng chưa?*
+
+- Khi Admin approve bài Pending, Status có chuyển sang Approved và RejectReason có được reset null không?
+- Sau khi approve, bài hát có thực sự xuất hiện công khai trên trang chủ (Home) và Search không?
+- Khi Admin reject kèm lý do, Status có chuyển sang Rejected và RejectReason có lưu đúng (đã trim) không?
+- Khi Admin reject mà bỏ trống lý do, hệ thống có chặn (hiển thị "Vui lòng nhập lý do từ chối"), không thay đổi Status không?
+- Chỉ tài khoản Role = Admin mới gọi được API review; các vai trò khác có nhận HTTP 403 không?
+- Action không hợp lệ (không phải "approve"/"reject") có bị từ chối với "Hành động không hợp lệ." không?
+- Khi bài hát không tồn tại, response có là "Không tìm thấy bài hát." không?
+- Artist (chủ bài) có thấy đúng trạng thái + lý do từ chối trên /artist/songs sau khi Admin review không?
+- Tất cả AC-01, AC-02, AC-03 chạy thực tế cho kết quả khớp expected không?
+
 ## Acceptance Criteria
 
 | AC | Mô tả | TC liên kết |

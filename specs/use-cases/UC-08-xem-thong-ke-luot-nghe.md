@@ -53,6 +53,41 @@ Artist theo dõi độ phổ biến tác phẩm thông qua trang thống kê. Tr
 | BR-04 | Số format: >= 1M -> "X.XM", >= 1K -> "X.XK", còn lại nguyên |
 | BR-05 | Chỉ Artist (hoặc Admin) mới truy cập được trang /artist/stats |
 
+## Tiêu chí chất lượng
+
+### Mức ý niệm (Essential / Conceptual) — *UC này có cần thiết không?*
+
+- **Mục tiêu nghiệp vụ**: cho Artist theo dõi độ phổ biến tác phẩm — vòng phản hồi quan trọng giúp Artist hiểu thị hiếu khán giả.
+- **Tiêu thụ dữ liệu được tạo bởi UC khác**: PlayCount (từ UC-01), LikeCount (từ UC-03), Status Approved (từ UC-09) — UC-08 là tầng phân tích, không sinh dữ liệu mới.
+- **Chính sách thống kê đúng**: chỉ tính bài Approved → loại bỏ noise từ bài Pending/Rejected.
+- **Actor đúng vai**: chỉ Artist (chủ sở hữu) và Admin xem được thống kê của mình → bảo vệ riêng tư.
+- **Truy vết tới BR**: UC-08 ↔ BR-01 (Quản lý bài hát) — phản ánh quyền của chủ nội dung.
+- **Trung lập công nghệ**: chưa nói tới SQL aggregation, biểu đồ cụ thể, hay DTO.
+
+### Mức thiết kế (Design-level) — *Thiết kế xử lý UC này có hợp lý không?*
+
+- **Luồng chính + luồng "chưa có dữ liệu"**: bao phủ trải nghiệm cho Artist mới (chưa upload) và Artist đã có nội dung.
+- **Bố cục thông tin có cấu trúc**: 2 card tổng (overview) + biểu đồ top (visualization) + bảng chi tiết (detail) — đúng pattern dashboard.
+- **Quy tắc định lượng**: top 10 bài hát, sort theo PlayCount giảm dần — không mơ hồ.
+- **Format số có ngưỡng cụ thể**: ≥ 1M → "X.XM", ≥ 1K → "X.XK" — dễ đọc, đồng bộ chuẩn ngành.
+- **EmptyState có thông điệp hữu ích**: hướng dẫn Artist mới "Hãy upload và được duyệt ít nhất một bài hát" thay vì chỉ "Chưa có dữ liệu".
+- **Phân quyền tách bạch**: chỉ Artist/Admin truy cập → phối hợp với UC-07 chứ không tự xử lý.
+- **Quy tắc nghiệp vụ đầy đủ để suy ra Requirement**: có thể sinh TC bao phủ Artist có ≥1 bài Approved (hiển thị đầy đủ), Artist chưa có bài (EmptyState).
+- **Tính module**: chỉ đọc/aggregate, không nhúng chức năng phát hay sửa.
+
+### Mức hiện thực (Concrete / Implementation-level) — *Bản code đã chạy đúng chưa?*
+
+- Khi Artist có ≥ 1 bài Approved, trang /artist/stats có hiển thị đúng TotalPlays, TotalLikes, biểu đồ và bảng chi tiết không?
+- TotalPlays có là **tổng PlayCount của tất cả bài Approved** của Artist, không tính bài Pending/Rejected, không?
+- TotalLikes có là **tổng LikeCount của tất cả bài Approved** của Artist không?
+- Biểu đồ có hiển thị tối đa 10 bài hát, sort theo PlayCount giảm dần không?
+- Width % của mỗi bar có tính đúng theo `PlayCount / maxPlayCount * 100` không?
+- Format số có đúng: 1,500,000 → "1.5M", 12,000 → "12.0K", 500 → "500" không?
+- Khi Artist chưa có bài Approved nào, UI có hiển thị EmptyState "Chưa có dữ liệu" / "Hãy upload và được duyệt ít nhất một bài hát." không?
+- Khi user không phải Artist/Admin truy cập /artist/stats, có bị chặn không?
+- Stats có **chỉ trả về bài của Artist hiện tại** (`ArtistId == userId`), không lộ stats của Artist khác không?
+- AC-01, AC-02 chạy thực tế cho kết quả khớp expected không?
+
 ## Acceptance Criteria
 
 | AC | Mô tả | TC liên kết |

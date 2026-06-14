@@ -60,6 +60,37 @@ User lấy link bài hát để chia sẻ bên ngoài (copy link to clipboard). 
 | BR-02 | Chỉ bài hát đã Approved mới hiển thị đầy đủ cho người nhận không phải chủ bài |
 | BR-03 | Bài hát Pending/Rejected chỉ hiển thị cho chủ bài (ArtistId == userId) và Admin |
 
+## Tiêu chí chất lượng
+
+### Mức ý niệm (Essential / Conceptual) — *UC này có cần thiết không?*
+
+- **Mục tiêu nghiệp vụ**: cho user lan tỏa nội dung ra bên ngoài hệ thống (mạng xã hội, tin nhắn) — chức năng growth, tăng tiếp cận tự nhiên.
+- **Cách tiếp cận đơn giản**: copy link vào clipboard thay vì tích hợp share API phức tạp — phù hợp với độ ưu tiên Low của tính năng.
+- **Bảo toàn chính sách kiểm duyệt**: link công khai chỉ hiển thị đầy đủ cho người nhận khi bài Approved → không bypass UC-09 (duyệt).
+- **Actor**: bất kỳ user đã đăng nhập — phản ánh tính phổ thông.
+- **Truy vết tới BR**: UC-04 ↔ BR-02 (Tương tác bài hát).
+- **Trung lập công nghệ**: chưa nói tới `navigator.clipboard`, JS Interop, fallback `execCommand`.
+
+### Mức thiết kế (Design-level) — *Thiết kế xử lý UC này có hợp lý không?*
+
+- **Luồng chính ngắn gọn 6 bước** + 1 luồng phía người nhận + 2 ngoại lệ (bài không tồn tại/chưa duyệt, clipboard API không khả dụng) → bao phủ kịch bản thực tế.
+- **Có fallback graceful**: thiết kế đã tính tới trường hợp trình duyệt không hỗ trợ Clipboard API → fallback `execCommand("copy")` thay vì lỗi cứng.
+- **URL có cấu trúc rõ**: `{App:BaseUrl}/songs/{Id}` — dễ test, dễ thay đổi base URL khi deploy môi trường khác.
+- **Visibility rule rõ**: bài Pending/Rejected chỉ chủ bài và Admin xem được — đồng bộ với UC-07.
+- **Quy tắc nghiệp vụ đầy đủ để suy ra Requirement**: có thể sinh TC bao phủ copy thành công, mở link bài Approved, mở link bài Pending/không tồn tại.
+- **Tính module**: chỉ xử lý copy link, không nhúng việc track số lượt share (nếu cần sẽ là UC mới).
+
+### Mức hiện thực (Concrete / Implementation-level) — *Bản code đã chạy đúng chưa?*
+
+- Khi user nhấn nút "Chia sẻ", link đúng định dạng `{BaseUrl}/songs/{Id}` có được copy vào clipboard không?
+- Toast "Đã copy link!" có hiển thị sau khi copy thành công không?
+- Trên trình duyệt không hỗ trợ `navigator.clipboard`, fallback `execCommand("copy")` có hoạt động không?
+- Khi người nhận (đã đăng nhập) mở link bài Approved, trang chi tiết bài hát có hiển thị đầy đủ (Play, Like, Share) không?
+- Khi người nhận mở link bài không tồn tại, UI có hiển thị EmptyState "Không tìm thấy bài hát" không?
+- Khi người nhận **không phải chủ bài/Admin** mở link bài Pending/Rejected, hệ thống có trả "Không tìm thấy bài hát" (không lộ tồn tại) không?
+- Khi chính chủ bài hoặc Admin mở link bài Pending/Rejected, họ vẫn xem được không?
+- AC-01 chạy thực tế cho kết quả khớp expected không?
+
 ## Acceptance Criteria
 
 | AC | Mô tả | TC liên kết |

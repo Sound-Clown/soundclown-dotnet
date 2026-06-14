@@ -111,6 +111,41 @@ Artist tổ chức bài hát thành album. Artist có thể tạo album mới, c
 | BR-05 | Xóa album: bài hát trong album trở thành single (AlbumId = null), không bị xóa |
 | BR-06 | Thêm bài hát đã thuộc album đó là idempotent (không lỗi, không tăng count) |
 
+## Tiêu chí chất lượng
+
+### Mức ý niệm (Essential / Conceptual) — *UC này có cần thiết không?*
+
+- **Mục tiêu nghiệp vụ**: cho Artist tổ chức bài hát thành album — phản ánh đúng mô hình phát hành nhạc trong ngành.
+- **Tách biệt "nội dung" và "tổ chức"**: album là lớp tổ chức bên trên bài hát; xóa album không xóa bài hát → bảo toàn nội dung gốc.
+- **CRUD hoàn chỉnh trong một UC**: tạo / sửa / xóa album + thêm / xóa bài khỏi album — vòng đời album đầy đủ trong một use case.
+- **Actor đúng vai**: chỉ Artist (chủ sở hữu) mới thao tác → đồng bộ với UC-07 (quản lý bài hát).
+- **Truy vết tới BR**: UC-06 ↔ BR-01 (Quản lý bài hát).
+- **Trung lập công nghệ**: chưa nói tới Cloudinary, SET NULL, hay endpoint cụ thể.
+
+### Mức thiết kế (Design-level) — *Thiết kế xử lý UC này có hợp lý không?*
+
+- **5 luồng đối ngẫu**: tạo, sửa, thêm bài, xóa bài, xóa album — bao phủ toàn bộ vòng đời.
+- **5 nhánh ngoại lệ R1–R5** rõ ràng: tên trống, album không thuộc Artist, bài người khác, ảnh sai loại, ảnh quá size.
+- **Tính idempotent khi thêm bài đã thuộc album**: thiết kế đã tính tới việc thao tác lặp không gây lỗi (BR-06).
+- **Quy tắc xóa "mềm" có chủ đích**: xóa album → bài thành single (AlbumId = null), không xóa cascade bài hát → bảo vệ dữ liệu Artist.
+- **Confirm dialog cho thao tác hủy**: thiết kế UX có rào chắn cho hành động bất khả phục hồi.
+- **Quy tắc nghiệp vụ đầy đủ để suy ra Requirement**: có thể sinh TC bao phủ tạo album thành công, sửa thành công, thêm bài hợp lệ, thêm bài người khác (negative), xóa album.
+- **Tính module**: chỉ xử lý vòng đời album, không nhúng việc duyệt nội dung (UC-09) hay phát nhạc.
+
+### Mức hiện thực (Concrete / Implementation-level) — *Bản code đã chạy đúng chưa?*
+
+- Khi Artist tạo album với tên hợp lệ, album có được lưu vào DB với Name đã trim và xuất hiện trên trang /artist/albums không?
+- Khi Artist sửa tên/ảnh bìa album của mình, cập nhật có được lưu đúng không?
+- Khi Artist cố sửa album của Artist khác, server có trả "Không tìm thấy album hoặc bạn không có quyền." không?
+- Khi tên album để trống (chỉ khoảng trắng), hệ thống có chặn với "Vui lòng nhập tên album." không?
+- Khi Artist thêm bài hát thuộc về mình vào album thuộc mình, song.AlbumId có được gán đúng không?
+- Khi Artist cố thêm bài hát người khác vào album, server có trả "Bài hát không hợp lệ." (HTTP 400) không?
+- Khi thêm bài đã thuộc album đó (idempotent), code có không lỗi và không tăng count gì không?
+- Khi xóa bài khỏi album, song.AlbumId có chuyển null không?
+- Khi xóa album, các bài hát trong album có giữ lại (AlbumId = null), không bị xóa theo không?
+- Ảnh bìa album: code có validate đúng content-type ∈ {JPG, PNG, WebP} và size ≤ 2MB không?
+- Tất cả AC-01 → AC-05 chạy thực tế cho kết quả khớp expected không?
+
 ## Acceptance Criteria
 
 | AC | Mô tả | TC liên kết |

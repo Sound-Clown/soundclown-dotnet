@@ -90,6 +90,40 @@ Artist xem, sửa, và xóa bài hát thuộc về mình. Khi sửa nội dung (
 | BR-06 | API Admin chỉ accessible bởi Role = Admin (route-level `[Authorize(Roles = "Admin")]`) |
 | BR-07 | Lỗi quyền: route-level trả 403, service-level trả 403/400 kèm message |
 
+## Tiêu chí chất lượng
+
+### Mức ý niệm (Essential / Conceptual) — *UC này có cần thiết không?*
+
+- **Mục tiêu nghiệp vụ**: cho Artist tự bảo trì nội dung bài hát (sửa, xóa) thay vì phải xóa-rồi-upload lại — giảm ma sát vận hành.
+- **Phân quyền là trục xương sống**: UC này đồng thời chi phối ai được làm gì với tài nguyên — Role-based + Ownership-based.
+- **Nguyên tắc bảo toàn chất lượng**: thay đổi nội dung công khai (Title/CoverImage) phải qua kiểm duyệt lại → bảo vệ chuẩn nội dung đã được duyệt trước đó.
+- **Phân biệt "nội dung" và "tổ chức"**: đổi AlbumId chỉ là tổ chức/sắp xếp → không cần duyệt lại.
+- **Actor đúng vai**: chính chủ Artist + Admin có quyền can thiệp.
+- **Truy vết tới BR**: UC-07 ↔ BR-01 (Quản lý bài hát) + BR-05 (Phân quyền truy cập).
+- **Trung lập công nghệ**: chưa nói tới `[Authorize]`, JWT, hay middleware.
+
+### Mức thiết kế (Design-level) — *Thiết kế xử lý UC này có hợp lý không?*
+
+- **Phân biệt rõ 2 loại thay đổi**: nội dung (Title/CoverImage → reset Pending) vs tổ chức (AlbumId → giữ Status) — tránh hiểu sai "sửa gì cũng reset" hoặc ngược lại.
+- **Phòng vệ chiều sâu (defense in depth)**: 2 tầng kiểm tra — route-level (Role) + service-level (Ownership) → không phụ thuộc 1 lớp duy nhất, ngăn được bypass UI.
+- **4 nhánh ngoại lệ R1–R4 rõ ràng**: sai role (403 route-level), sai owner sửa bài (403 service-level), bài không thuộc Artist, thêm bài người khác vào album (400).
+- **Phân biệt mã lỗi có chủ đích**: 403 cho sai role/owner, 400 cho dữ liệu nghiệp vụ sai.
+- **Quy tắc nghiệp vụ đầy đủ để suy ra Requirement**: có thể sinh TC bao phủ sửa Title (reset), sửa AlbumId (không reset), Artist A sửa bài Artist B (403), non-admin gọi API admin (403).
+- **Tính module (cross-cutting)**: phân quyền được tích hợp tự nhiên vào CRUD bài hát thay vì rải rác khắp các UC khác.
+
+### Mức hiện thực (Concrete / Implementation-level) — *Bản code đã chạy đúng chưa?*
+
+- Khi Artist sửa Title hoặc CoverImage của bài Approved, Status có **reset về Pending** và badge UI chuyển vàng không?
+- Khi Artist chỉ đổi AlbumId (không đổi Title/CoverImage), Status có **giữ nguyên** không?
+- Khi Artist cố sửa bài hát của Artist khác, server có trả HTTP 403 kèm "Không tìm thấy bài hát hoặc bạn không có quyền." không?
+- Khi Listener hoặc Artist gọi API yêu cầu Role = Admin, server có trả HTTP 403 (chặn ở route-level) không?
+- Khi Artist cố thêm bài hát người khác vào album của mình, server có trả HTTP 400 kèm "Bài hát không hợp lệ." không?
+- Title có được trim khoảng trắng trước khi lưu không?
+- Khi Artist xóa bài hát của mình, bản ghi Song có thực sự bị xóa không?
+- Bài Pending có **ẩn** khỏi trang chủ với user khác (không phải owner và Admin) không?
+- Phân quyền có được thực hiện ở **cả hai tầng** (route-level + service-level), không phụ thuộc chỉ vào UI không?
+- Tất cả AC-01 → AC-04 chạy thực tế cho kết quả khớp expected không?
+
 ## Acceptance Criteria
 
 | AC | Mô tả | TC liên kết |
