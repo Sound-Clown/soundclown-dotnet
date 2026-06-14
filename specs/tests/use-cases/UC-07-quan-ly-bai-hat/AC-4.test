@@ -1,0 +1,7 @@
+type: api
+account: artist@demo.com / Artist123!
+tool: Postman — POST /api/albums/{id}/songs, Bearer {{tokenArtist}}
+steps:
+  1. Gọi POST /api/albums/{id}/songs với songId KHÔNG thuộc artist
+expected: HTTP 400, { "error": "Bài hát không hợp lệ." }
+screenshot: Response lỗi

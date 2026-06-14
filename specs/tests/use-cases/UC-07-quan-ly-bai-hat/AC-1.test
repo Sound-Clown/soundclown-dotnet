@@ -1,0 +1,12 @@
+type: manual
+account: artist@demo.com / Artist123!
+tool: Browser
+steps:
+  1. Đăng nhập artist@demo.com
+  2. Vào /artist/songs
+  3. Tìm 1 bài đang Approved (badge xanh)
+  4. Nhấn Edit (biểu tượng bút)
+  5. Đổi Title -> nhấn Lưu
+  6. Quan sát lại badge
+expected: Badge chuyển từ Approved (xanh) -> Pending (vàng)
+screenshot: Trước sửa badge xanh + sau sửa badge vàng

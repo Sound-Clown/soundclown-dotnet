@@ -6,7 +6,7 @@ Admin duyệt (approve) hoặc từ chối (reject) bài hát Pending. Reject b�
 
 ## Nguồn
 
-- UC-04: Admin duyệt bài hát
+- UC-09: Duyệt bài hát
 
 ## Quy tắc nghiệp vụ
 

@@ -1,4 +1,4 @@
-# BR-04: Quản lý user
+# BR-04: Quản lý tài khoản
 
 ## Mô tả
 
@@ -6,7 +6,7 @@ Admin có thể khóa/mở khóa tài khoản user. User bị khóa không thể
 
 ## Nguồn
 
-- UC-05: Admin quản lý user
+- UC-10: Quản lý tài khoản
 
 ## Quy tắc nghiệp vụ
 

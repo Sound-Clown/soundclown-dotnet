@@ -1,0 +1,9 @@
+type: manual
+account: listener@demo.com / Listener123!
+tool: Browser
+steps:
+  1. Vào /search
+  2. Nhập từ khóa khớp với ít nhất 1 bài hát (VD: "Giấc Mơ")
+  3. Chờ kết quả (debounce ~300ms)
+expected: Hiển thị danh sách bài hát khớp
+screenshot: Kết quả tìm kiếm

@@ -1,0 +1,9 @@
+type: manual
+account: listener@demo.com / Listener123!
+tool: Browser
+steps:
+  1. Vào /search
+  2. Nhập xyz_abc_123_not_exist
+  3. Chờ kết quả
+expected: Hiển thị EmptyState — "Không tìm thấy kết quả"
+screenshot: EmptyState

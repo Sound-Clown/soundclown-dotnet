@@ -1,0 +1,10 @@
+type: manual
+account: listener@demo.com / Listener123!
+tool: Browser
+steps:
+  1. Đăng nhập listener@demo.com
+  2. Vào trang Home
+  3. Nhấn nút ♡ (Like) 5 lần liên tiếp vào cùng 1 bài hát trong vòng 3 giây
+  4. Quan sát icon ♡ và số like
+expected: Like count chỉ tăng 1, icon ♡ hiển thị trạng thái cuối cùng (đã like)
+screenshot: Số like count hiển thị sau 5 lần click

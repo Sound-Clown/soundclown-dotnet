@@ -1,0 +1,10 @@
+type: manual
+account: admin@music.com / Admin123456!
+tool: Browser
+steps:
+  1. Đăng nhập admin@music.com
+  2. Vào /admin/users
+  3. Tìm dòng tài khoản của chính mình (có badge "Bạn")
+  4. Quan sát nút hành động
+expected: Không có nút Khóa/Mở khóa trên dòng tài khoản của mình. Dòng hiển thị —
+screenshot: Dòng admin hiện tại không có nút hành động

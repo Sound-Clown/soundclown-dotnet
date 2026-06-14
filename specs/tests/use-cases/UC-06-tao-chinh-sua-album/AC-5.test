@@ -1,0 +1,10 @@
+type: manual
+account: artist@demo.com / Artist123!
+tool: Browser
+steps:
+  1. Vào /artist/albums
+  2. Hover album, nhấn Edit
+  3. Nhấn "Xóa"
+  4. Xác nhận xóa trong dialog
+expected: Toast "Đã xóa album.", bài hát trong album trở thành single
+screenshot: Danh sách album sau khi xóa

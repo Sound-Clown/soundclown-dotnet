@@ -1,0 +1,8 @@
+type: api
+account: artist@demo.com / Artist123!
+tool: Postman — POST /api/albums/{id}/songs, Bearer {{tokenArtist}}
+steps:
+  1. Login artist@demo.com lấy token
+  2. Gọi POST /api/albums/{id}/songs với songId thuộc artist
+expected: HTTP 200, { "message": "Đã thêm bài hát vào album." }
+screenshot: Response body JSON
